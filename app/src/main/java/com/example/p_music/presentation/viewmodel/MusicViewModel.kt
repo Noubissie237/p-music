@@ -70,8 +70,8 @@ class MusicViewModel @Inject constructor(
                             error = null
                         )
                     }
-                    // Mettre à jour la playlist du service
-                    audioPlayerService.setPlaylist(audios)
+                    // Mettre à jour la playlist du service sans lancer la lecture
+                    audioPlayerService.setPlaylist(audios, false)
                 }
             } catch (e: Exception) {
                 _uiState.update { 
@@ -110,8 +110,8 @@ class MusicViewModel @Inject constructor(
                             error = null
                         )
                     }
-                    // Mettre à jour la playlist du service avec les résultats filtrés
-                    audioPlayerService.setPlaylist(filtered)
+                    // Mettre à jour la playlist du service sans lancer la lecture
+                    audioPlayerService.setPlaylist(filtered, false)
                 }
             } catch (e: Exception) {
                 _uiState.update { 

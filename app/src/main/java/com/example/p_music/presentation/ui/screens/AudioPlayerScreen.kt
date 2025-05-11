@@ -92,26 +92,11 @@ fun AudioPlayerScreen(
             )
 
             // Barre de progression
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .padding(horizontal = 16.dp)
-            ) {
-                // Fond de la barre
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                )
-                // Progression
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(uiState.progress)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
+            ProgressBar(
+                progress = uiState.progress,
+                onProgressChange = { viewModel.seekTo(it) },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
 
             // Temps écoulé et restant
             Row(

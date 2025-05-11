@@ -81,10 +81,10 @@ class AudioPlayerService @Inject constructor(
         }
     }
 
-    fun setPlaylist(audios: List<Audio>) {
+    fun setPlaylist(audios: List<Audio>, autoPlay: Boolean = true) {
         playlist = audios
         currentIndex = -1
-        if (audios.isNotEmpty()) {
+        if (audios.isNotEmpty() && autoPlay) {
             currentIndex = 0
             prepareAndPlay(audios[0])
         }

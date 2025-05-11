@@ -15,35 +15,48 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import com.example.p_music.presentation.ui.theme.SpotifyGreen
-import com.example.p_music.presentation.ui.theme.SpotifyDarkGray
-import com.example.p_music.presentation.ui.theme.SpotifyLightGray
+
+// Couleurs Spotify
+private val SpotifyGreen = Color(0xFF1DB954)
+private val SpotifyBlack = Color(0xFF191414)
+private val SpotifyDarkGray = Color(0xFF282828)
+private val SpotifyLightGray = Color(0xFFB3B3B3)
+private val SpotifyWhite = Color(0xFFFFFFFF)
 
 private val DarkColorScheme = darkColorScheme(
-    primary = SpotifyGreen,
-    background = SpotifyDarkGray,
-    surface = Color(0xFF282828),
-    onBackground = Color.White,
-    onSurface = Color.White
+    primary = SpotifyColors.Green,
+    secondary = SpotifyColors.LightGray,
+    tertiary = SpotifyColors.DarkGray,
+    background = SpotifyColors.Black,
+    surface = SpotifyColors.DarkGray,
+    error = SpotifyColors.Error,
+    onPrimary = SpotifyColors.White,
+    onSecondary = SpotifyColors.Black,
+    onTertiary = SpotifyColors.White,
+    onBackground = SpotifyColors.White,
+    onSurface = SpotifyColors.White,
+    onError = SpotifyColors.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = SpotifyGreen,
-    secondary = SpotifyLightGray,
-    tertiary = SpotifyDarkGray,
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onTertiary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black
+    primary = SpotifyColors.Green,
+    secondary = SpotifyColors.DarkGray,
+    tertiary = SpotifyColors.LightGray,
+    background = SpotifyColors.White,
+    surface = SpotifyColors.LightGray,
+    error = SpotifyColors.Error,
+    onPrimary = SpotifyColors.White,
+    onSecondary = SpotifyColors.White,
+    onTertiary = SpotifyColors.Black,
+    onBackground = SpotifyColors.Black,
+    onSurface = SpotifyColors.Black,
+    onError = SpotifyColors.White
 )
 
 @Composable
 fun PMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -58,7 +71,7 @@ fun PMusicTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 data class MusicUiState(
     val audioList: List<Audio> = emptyList(),
+    val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -32,8 +33,63 @@ class MusicViewModel @Inject constructor(
 
     private fun loadAudios() {
         viewModelScope.launch {
-            audioRepository.getAudios().collect { audios ->
-                _uiState.update { it.copy(audioList = audios) }
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                audioRepository.getAudios().collect { audios ->
+                    _uiState.update { 
+                        it.copy(
+                            audioList = audios,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Une erreur est survenue"
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun search() {
+        val query = _uiState.value.searchQuery
+        if (query.isBlank()) {
+            loadAudios()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val filteredAudios = audioRepository.getAudios().collect { audios ->
+                    val filtered = audios.filter { audio ->
+                        audio.title.contains(query, ignoreCase = true) ||
+                        audio.artist.contains(query, ignoreCase = true) ||
+                        audio.album.contains(query, ignoreCase = true)
+                    }
+                    _uiState.update { 
+                        it.copy(
+                            audioList = filtered,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Une erreur est survenue"
+                    )
+                }
             }
         }
     }

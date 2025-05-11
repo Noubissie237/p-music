@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.p_music.presentation.ui.theme.SpotifyColors
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun MiniPlayer(
@@ -22,6 +23,8 @@ fun MiniPlayer(
     artist: String,
     isPlaying: Boolean,
     progress: Float,
+    elapsedTime: Long,
+    remainingTime: Long,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
     onPreviousClick: () -> Unit,
@@ -113,6 +116,27 @@ fun MiniPlayer(
                     }
                 }
             }
+
+            // Temps écoulé et restant
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatDuration(elapsedTime),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = formatDuration(remainingTime),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
+    return String.format("%02d:%02d", minutes, seconds)
 } 

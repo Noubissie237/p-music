@@ -6,10 +6,7 @@ import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
 import com.example.p_music.domain.service.AudioPlayerService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,7 +17,9 @@ data class MusicUiState(
     val error: String? = null,
     val currentAudio: Audio? = null,
     val isPlaying: Boolean = false,
-    val progress: Float = 0f
+    val progress: Float = 0f,
+    val elapsedTime: Long = 0L,
+    val remainingTime: Long = 0L
 )
 
 @HiltViewModel
@@ -34,23 +33,32 @@ class MusicViewModel @Inject constructor(
 
     init {
         loadAudios()
+        observePlayerState()
+    }
 
+    private fun observePlayerState() {
         viewModelScope.launch {
-            // Observer l'état de lecture
-            audioPlayerService.isPlaying.collect { isPlaying ->
-                _uiState.update { it.copy(isPlaying = isPlaying) }
-            }
-        }
-
-        viewModelScope.launch {
-            // Observer la progression
-            audioPlayerService.currentProgress.collect { progress ->
-                _uiState.update { it.copy(progress = progress) }
-            }
+            combine(
+                audioPlayerService.currentAudio,
+                audioPlayerService.isPlaying,
+                audioPlayerService.currentProgress,
+                audioPlayerService.elapsedTime,
+                audioPlayerService.remainingTime
+            ) { audio, isPlaying, progress, elapsed, remaining ->
+                _uiState.update { 
+                    it.copy(
+                        currentAudio = audio,
+                        isPlaying = isPlaying,
+                        progress = progress,
+                        elapsedTime = elapsed,
+                        remainingTime = remaining
+                    )
+                }
+            }.collect()
         }
     }
 
-    private fun loadAudios() {
+    fun loadAudios() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -62,6 +70,8 @@ class MusicViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    // Mettre à jour la playlist du service
+                    audioPlayerService.setPlaylist(audios)
                 }
             } catch (e: Exception) {
                 _uiState.update { 
@@ -88,11 +98,10 @@ class MusicViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val filteredAudios = audioRepository.getAudios().collect { audios ->
+                audioRepository.getAudios().collect { audios ->
                     val filtered = audios.filter { audio ->
                         audio.title.contains(query, ignoreCase = true) ||
-                        audio.artist.contains(query, ignoreCase = true) ||
-                        audio.album.contains(query, ignoreCase = true)
+                        audio.artist.contains(query, ignoreCase = true)
                     }
                     _uiState.update { 
                         it.copy(
@@ -101,6 +110,8 @@ class MusicViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    // Mettre à jour la playlist du service avec les résultats filtrés
+                    audioPlayerService.setPlaylist(filtered)
                 }
             } catch (e: Exception) {
                 _uiState.update { 
@@ -114,16 +125,28 @@ class MusicViewModel @Inject constructor(
     }
 
     fun playAudio(audio: Audio) {
-        audioPlayerService.play(audio)
-        _uiState.update { it.copy(currentAudio = audio) }
+        audioPlayerService.playAudio(audio)
     }
 
     fun togglePlayPause() {
         audioPlayerService.togglePlayPause()
     }
 
+    fun playNext() {
+        audioPlayerService.playNext()
+    }
+
+    fun playPrevious() {
+        audioPlayerService.playPrevious()
+    }
+
+    fun seekTo(position: Float) {
+        audioPlayerService.seekTo(position)
+    }
+
     override fun onCleared() {
         super.onCleared()
-        audioPlayerService.release()
+        // Le service sera détruit automatiquement par le système
+        // quand il n'y aura plus de clients connectés
     }
 } 

@@ -91,9 +91,11 @@ fun MusicScreen(
                 artist = audio.artist,
                 isPlaying = uiState.isPlaying,
                 progress = uiState.progress,
+                elapsedTime = uiState.elapsedTime,
+                remainingTime = uiState.remainingTime,
                 onPlayPauseClick = { viewModel.togglePlayPause() },
-                onNextClick = { /* TODO: Implémenter la logique */ },
-                onPreviousClick = { /* TODO: Implémenter la logique */ },
+                onNextClick = { viewModel.playNext() },
+                onPreviousClick = { viewModel.playPrevious() },
                 onPlayerClick = { onAudioClick(audio) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

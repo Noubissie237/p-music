@@ -30,6 +30,14 @@ fun MusicScreen(
     var currentProgress by remember { mutableStateOf(0f) }
     var currentSong by remember { mutableStateOf<Audio?>(null) }
 
+    // Effet pour démarrer la lecture automatiquement lorsqu'une nouvelle chanson est sélectionnée
+    LaunchedEffect(currentSong) {
+        if (currentSong != null) {
+            isPlaying = true
+            // TODO: Démarrer la lecture de la musique ici
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -80,8 +88,7 @@ fun MusicScreen(
                                     imageUrl = audio.coverUri?.toString(),
                                     onClick = {
                                         currentSong = audio
-                                        isPlaying = true
-                                        onAudioClick(audio)
+                                        // La lecture démarrera automatiquement grâce au LaunchedEffect
                                     }
                                 )
                             }
@@ -98,7 +105,10 @@ fun MusicScreen(
                 artist = song.artist,
                 isPlaying = isPlaying,
                 progress = currentProgress,
-                onPlayPauseClick = { isPlaying = !isPlaying },
+                onPlayPauseClick = { 
+                    isPlaying = !isPlaying
+                    // TODO: Mettre en pause/reprendre la lecture
+                },
                 onNextClick = { /* TODO: Implémenter la logique */ },
                 onPreviousClick = { /* TODO: Implémenter la logique */ },
                 onPlayerClick = { onAudioClick(song) },

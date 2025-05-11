@@ -35,26 +35,7 @@ fun MainScreen() {
     val isPlayerScreen = currentDestination?.route?.startsWith("player/") == true
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = when (currentDestination?.route) {
-                            Screen.Music.route -> stringResource(R.string.music)
-                            Screen.Videos.route -> stringResource(R.string.videos)
-                            Screen.Favorites.route -> stringResource(R.string.favorites)
-                            Screen.Playlists.route -> stringResource(R.string.playlists)
-                            Screen.Settings.route -> stringResource(R.string.settings)
-                            else -> stringResource(R.string.app_name)
-                        }
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
-        },
+
         bottomBar = {
             if (!isPlayerScreen) {
                 NavigationBar {

@@ -31,17 +31,18 @@ class AudioRepositoryImpl @Inject constructor(
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.DATE_ADDED
+            MediaStore.Audio.Media.DATE_MODIFIED
         )
 
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        val sortOrder = "${MediaStore.Audio.Media.DATE_MODIFIED} DESC"
 
         context.contentResolver.query(
             collection,
             projection,
             selection,
             null,
-            null
+            sortOrder
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
@@ -50,7 +51,7 @@ class AudioRepositoryImpl @Inject constructor(
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
 
             while (cursor.moveToNext()) {
                 val id = cursor.getString(idColumn)
@@ -60,7 +61,7 @@ class AudioRepositoryImpl @Inject constructor(
                 val duration = cursor.getLong(durationColumn)
                 val data = cursor.getString(dataColumn)
                 val size = cursor.getLong(sizeColumn)
-                val dateAdded = cursor.getLong(dateAddedColumn)
+                val dateModified = cursor.getLong(dateModifiedColumn)
 
                 val contentUri = ContentUris.withAppendedId(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -77,7 +78,7 @@ class AudioRepositoryImpl @Inject constructor(
                     path = data,
                     coverUri = getAlbumArtUri(id.toLong()),
                     size = size,
-                    dateAdded = dateAdded
+                    dateAdded = dateModified
                 )
                 audioList.add(audio)
             }
@@ -95,7 +96,7 @@ class AudioRepositoryImpl @Inject constructor(
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.DATE_ADDED
+            MediaStore.Audio.Media.DATE_MODIFIED
         )
 
         val selection = "${MediaStore.Audio.Media._ID} = ?"
@@ -116,7 +117,7 @@ class AudioRepositoryImpl @Inject constructor(
                 val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION))
                 val data = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA))
                 val size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE))
-                val dateAdded = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED))
+                val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED))
 
                 val contentUri = ContentUris.withAppendedId(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -133,7 +134,7 @@ class AudioRepositoryImpl @Inject constructor(
                     path = data,
                     coverUri = getAlbumArtUri(id.toLong()),
                     size = size,
-                    dateAdded = dateAdded
+                    dateAdded = dateModified
                 )
             } else null
         }
@@ -154,7 +155,7 @@ class AudioRepositoryImpl @Inject constructor(
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.DATE_ADDED
+            MediaStore.Audio.Media.DATE_MODIFIED
         )
 
         val selection = "${MediaStore.Audio.Media.ARTIST} = ?"
@@ -176,7 +177,7 @@ class AudioRepositoryImpl @Inject constructor(
                 val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION))
                 val data = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA))
                 val size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE))
-                val dateAdded = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED))
+                val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED))
 
                 val contentUri = ContentUris.withAppendedId(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -193,7 +194,7 @@ class AudioRepositoryImpl @Inject constructor(
                     path = data,
                     coverUri = getAlbumArtUri(id.toLong()),
                     size = size,
-                    dateAdded = dateAdded
+                    dateAdded = dateModified
                 )
                 audioList.add(audio)
             }
@@ -211,7 +212,7 @@ class AudioRepositoryImpl @Inject constructor(
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.DATE_ADDED
+            MediaStore.Audio.Media.DATE_MODIFIED
         )
 
         val selection = "${MediaStore.Audio.Media.ALBUM} = ?"
@@ -233,7 +234,7 @@ class AudioRepositoryImpl @Inject constructor(
                 val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION))
                 val data = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA))
                 val size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE))
-                val dateAdded = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED))
+                val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED))
 
                 val contentUri = ContentUris.withAppendedId(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -250,7 +251,7 @@ class AudioRepositoryImpl @Inject constructor(
                     path = data,
                     coverUri = getAlbumArtUri(id.toLong()),
                     size = size,
-                    dateAdded = dateAdded
+                    dateAdded = dateModified
                 )
                 audioList.add(audio)
             }

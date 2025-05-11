@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,57 +37,72 @@ class AudioRepositoryImpl @Inject constructor(
         val audioList = mutableListOf<Audio>()
         
         val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        Log.d("AudioRepository", "URI de collection: $collection")
         
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        Log.d("AudioRepository", "Sélection: $selection")
         
-        context.contentResolver.query(
-            collection,
-            projection,
-            selection,
-            null,
-            null
-        )?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-            val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
-            
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idColumn)
-                val title = cursor.getString(titleColumn)
-                val artist = cursor.getString(artistColumn)
-                val album = cursor.getString(albumColumn)
-                val duration = cursor.getLong(durationColumn)
-                val path = cursor.getString(pathColumn)
-                val size = cursor.getLong(sizeColumn)
-                val dateAdded = cursor.getLong(dateAddedColumn)
+        try {
+            context.contentResolver.query(
+                collection,
+                projection,
+                selection,
+                null,
+                null
+            )?.use { cursor ->
+                Log.d("AudioRepository", "Nombre de fichiers trouvés: ${cursor.count}")
                 
-                val contentUri = ContentUris.withAppendedId(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    id
-                )
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
                 
-                val audio = Audio(
-                    id = id,
-                    title = title,
-                    artist = artist,
-                    album = album,
-                    duration = duration,
-                    uri = contentUri,
-                    path = path,
-                    coverUri = contentUri,
-                    size = size,
-                    dateAdded = dateAdded
-                )
-                
-                audioList.add(audio)
+                while (cursor.moveToNext()) {
+                    try {
+                        val id = cursor.getLong(idColumn)
+                        val title = cursor.getString(titleColumn)
+                        val artist = cursor.getString(artistColumn)
+                        val album = cursor.getString(albumColumn)
+                        val duration = cursor.getLong(durationColumn)
+                        val path = cursor.getString(pathColumn)
+                        val size = cursor.getLong(sizeColumn)
+                        val dateAdded = cursor.getLong(dateAddedColumn)
+                        
+                        Log.d("AudioRepository", "Fichier trouvé: $title par $artist")
+                        
+                        val contentUri = ContentUris.withAppendedId(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            id
+                        )
+                        
+                        val audio = Audio(
+                            id = id,
+                            title = title,
+                            artist = artist,
+                            album = album,
+                            duration = duration,
+                            uri = contentUri,
+                            path = path,
+                            coverUri = contentUri,
+                            size = size,
+                            dateAdded = dateAdded
+                        )
+                        
+                        audioList.add(audio)
+                    } catch (e: Exception) {
+                        Log.e("AudioRepository", "Erreur lors de la lecture d'un fichier", e)
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e("AudioRepository", "Erreur lors de la requête", e)
         }
         
+        Log.d("AudioRepository", "Nombre total de fichiers audio: ${audioList.size}")
         audioList
     }
 

@@ -15,16 +15,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.p_music.R
+import com.example.p_music.domain.model.Audio
 import com.example.p_music.presentation.navigation.Screen
-import com.example.p_music.presentation.viewmodel.AudioPlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     navController: NavHostController = rememberNavController()
 ) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentBackStack by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStack?.destination?.route
 
     Scaffold(
         topBar = {
@@ -48,10 +48,7 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ) {
+            NavigationBar {
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.MusicNote, contentDescription = null) },
                     label = { Text(stringResource(R.string.music)) },
@@ -78,11 +75,11 @@ fun MainScreen(
                 )
             }
         }
-    ) { innerPadding ->
+    ) { paddingValues ->
         NavHost(
             navController = navController,
             startDestination = Screen.Music.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(paddingValues)
         ) {
             composable(Screen.Music.route) {
                 MusicScreen(
@@ -100,19 +97,15 @@ fun MainScreen(
             composable(Screen.Playlists.route) {
                 PlaylistsScreen()
             }
-            composable(Screen.Settings.route) {
-                SettingsScreen()
-            }
             composable(
                 route = Screen.AudioPlayer.route,
                 arguments = Screen.AudioPlayer.arguments
-            ) {
-                val viewModel: AudioPlayerViewModel = hiltViewModel()
-                val audioId = it.arguments?.getString("audioId") ?: ""
-                LaunchedEffect(audioId) {
-                    viewModel.loadAudio(audioId)
-                }
-                AudioPlayerScreen(viewModel = viewModel)
+            ) { backStackEntry ->
+                val audioId = backStackEntry.arguments?.getString("audioId") ?: return@composable
+                AudioPlayerScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    audioId = audioId
+                )
             }
         }
     }

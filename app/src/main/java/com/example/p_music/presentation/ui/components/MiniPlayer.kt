@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +52,7 @@ fun MiniPlayer(
     onNextClick: () -> Unit,
     onPreviousClick: () -> Unit,
     onPlayerClick: () -> Unit,
+    onProgressChange: (Float) -> Unit,
     coverArtUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
@@ -156,29 +159,11 @@ fun MiniPlayer(
                             contentColor = SpotifyColors.DarkGray
                         )
                     ) {
-                        AnimatedVisibility(
-                            visible = isPlaying,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Pause,
-                                contentDescription = "Pause",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        
-                        AnimatedVisibility(
-                            visible = !isPlaying,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Lecture",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Lecture",
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
 
                     IconButton(
@@ -202,15 +187,26 @@ fun MiniPlayer(
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 // Barre de progression
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(3.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = SpotifyColors.Green,
-                    trackColor = SpotifyColors.MediumGray.copy(alpha = 0.5f)
-                )
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(SpotifyColors.MediumGray.copy(alpha = 0.5f))
+                        .pointerInput(Unit) {
+                            detectTapGestures { offset ->
+                                val progress = (offset.x / size.width).coerceIn(0f, 1f)
+                                onProgressChange(progress)
+                            }
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .fillMaxHeight()
+                            .background(SpotifyColors.Green)
+                    )
+                }
                 
                 // Temps écoulé et restant
                 Row(
@@ -270,6 +266,7 @@ private fun MiniPlayerPreview() {
                 onNextClick = {},
                 onPreviousClick = {},
                 onPlayerClick = {},
+                onProgressChange = {},
                 coverArtUrl = null
             )
         }

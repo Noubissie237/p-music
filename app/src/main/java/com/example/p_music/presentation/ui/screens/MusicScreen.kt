@@ -97,6 +97,7 @@ fun MusicScreen(
                 onNextClick = { viewModel.playNext() },
                 onPreviousClick = { viewModel.playPrevious() },
                 onPlayerClick = { onAudioClick(audio) },
+                onProgressChange = { viewModel.seekTo(it) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()

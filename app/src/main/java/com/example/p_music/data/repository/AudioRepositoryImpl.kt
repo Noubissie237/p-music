@@ -43,6 +43,20 @@ class AudioRepositoryImpl @Inject constructor(
         Log.d("AudioRepository", "Sélection: $selection")
         
         try {
+            // Vérifier si le ContentResolver est disponible
+            if (context.contentResolver == null) {
+                Log.e("AudioRepository", "ContentResolver est null!")
+                return@withContext emptyList()
+            }
+
+            // Vérifier si l'URI est accessible
+            try {
+                context.contentResolver.getType(collection)
+                Log.d("AudioRepository", "URI est accessible")
+            } catch (e: Exception) {
+                Log.e("AudioRepository", "URI n'est pas accessible: ${e.message}")
+            }
+
             context.contentResolver.query(
                 collection,
                 projection,
@@ -51,6 +65,10 @@ class AudioRepositoryImpl @Inject constructor(
                 null
             )?.use { cursor ->
                 Log.d("AudioRepository", "Nombre de fichiers trouvés: ${cursor.count}")
+                
+                if (cursor.count == 0) {
+                    Log.d("AudioRepository", "Aucun fichier trouvé. Vérifiez les permissions et les dossiers.")
+                }
                 
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
                 val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
@@ -72,7 +90,15 @@ class AudioRepositoryImpl @Inject constructor(
                         val size = cursor.getLong(sizeColumn)
                         val dateAdded = cursor.getLong(dateAddedColumn)
                         
-                        Log.d("AudioRepository", "Fichier trouvé: $title par $artist")
+                        Log.d("AudioRepository", """
+                            Fichier trouvé:
+                            - Titre: $title
+                            - Artiste: $artist
+                            - Album: $album
+                            - Chemin: $path
+                            - Taille: $size
+                            - Durée: $duration
+                        """.trimIndent())
                         
                         val contentUri = ContentUris.withAppendedId(
                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -94,12 +120,16 @@ class AudioRepositoryImpl @Inject constructor(
                         
                         audioList.add(audio)
                     } catch (e: Exception) {
-                        Log.e("AudioRepository", "Erreur lors de la lecture d'un fichier", e)
+                        Log.e("AudioRepository", "Erreur lors de la lecture d'un fichier: ${e.message}")
+                        e.printStackTrace()
                     }
                 }
+            } ?: run {
+                Log.e("AudioRepository", "La requête a retourné null")
             }
         } catch (e: Exception) {
-            Log.e("AudioRepository", "Erreur lors de la requête", e)
+            Log.e("AudioRepository", "Erreur lors de la requête: ${e.message}")
+            e.printStackTrace()
         }
         
         Log.d("AudioRepository", "Nombre total de fichiers audio: ${audioList.size}")

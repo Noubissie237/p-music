@@ -14,7 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.p_music.R
 import com.example.p_music.domain.model.Audio
+import com.example.p_music.presentation.ui.components.MiniPlayer
 import com.example.p_music.presentation.ui.components.SpotifyCard
+import com.example.p_music.presentation.ui.components.SpotifySearchBar
 import com.example.p_music.presentation.viewmodel.MusicViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,70 +26,86 @@ fun MusicScreen(
     viewModel: MusicViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isPlaying by remember { mutableStateOf(false) }
+    var currentProgress by remember { mutableStateOf(0f) }
+    var currentSong by remember { mutableStateOf<Audio?>(null) }
 
-    Column(
+    Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Barre de recherche
-        SearchBar(
-            query = uiState.searchQuery,
-            onQueryChange = { viewModel.updateSearchQuery(it) },
-            onSearch = { viewModel.search() },
-            active = false,
-            onActiveChange = {},
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = stringResource(R.string.search)
-                )
-            },
-            placeholder = {
-                Text(stringResource(R.string.search_music))
-            },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(bottom = if (currentSong != null) 72.dp else 0.dp)
         ) {
-            // Résultats de recherche
-        }
+            SpotifySearchBar(
+                query = uiState.searchQuery,
+                onQueryChange = viewModel::updateSearchQuery,
+                onSearch = viewModel::search,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator()
-                }
-                uiState.error != null -> {
-                    Text(
-                        text = uiState.error!!,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                uiState.audioList.isEmpty() -> {
-                    Text(
-                        text = stringResource(R.string.no_music_found),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.audioList) { audio ->
-                            SpotifyCard(
-                                title = audio.title,
-                                subtitle = audio.artist,
-                                imageUrl = audio.coverUri?.toString(),
-                                onClick = { onAudioClick(audio) }
-                            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        CircularProgressIndicator()
+                    }
+                    uiState.error != null -> {
+                        Text(
+                            text = uiState.error!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    uiState.audioList.isEmpty() -> {
+                        Text(
+                            text = stringResource(R.string.no_music_found),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.audioList) { audio ->
+                                SpotifyCard(
+                                    title = audio.title,
+                                    subtitle = audio.artist,
+                                    imageUrl = audio.coverUri?.toString(),
+                                    onClick = {
+                                        currentSong = audio
+                                        isPlaying = true
+                                        onAudioClick(audio)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        // MiniPlayer
+        currentSong?.let { song ->
+            MiniPlayer(
+                title = song.title,
+                artist = song.artist,
+                isPlaying = isPlaying,
+                progress = currentProgress,
+                onPlayPauseClick = { isPlaying = !isPlaying },
+                onNextClick = { /* TODO: Implémenter la logique */ },
+                onPreviousClick = { /* TODO: Implémenter la logique */ },
+                onPlayerClick = { onAudioClick(song) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+            )
         }
     }
 } 

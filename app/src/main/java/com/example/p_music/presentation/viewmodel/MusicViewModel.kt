@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
+import com.example.p_music.domain.service.AudioPlayerService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,12 +17,16 @@ data class MusicUiState(
     val audioList: List<Audio> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val currentAudio: Audio? = null,
+    val isPlaying: Boolean = false,
+    val progress: Float = 0f
 )
 
 @HiltViewModel
 class MusicViewModel @Inject constructor(
-    private val audioRepository: AudioRepository
+    private val audioRepository: AudioRepository,
+    private val audioPlayerService: AudioPlayerService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MusicUiState())
@@ -29,6 +34,20 @@ class MusicViewModel @Inject constructor(
 
     init {
         loadAudios()
+
+        viewModelScope.launch {
+            // Observer l'état de lecture
+            audioPlayerService.isPlaying.collect { isPlaying ->
+                _uiState.update { it.copy(isPlaying = isPlaying) }
+            }
+        }
+
+        viewModelScope.launch {
+            // Observer la progression
+            audioPlayerService.currentProgress.collect { progress ->
+                _uiState.update { it.copy(progress = progress) }
+            }
+        }
     }
 
     private fun loadAudios() {
@@ -92,5 +111,19 @@ class MusicViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun playAudio(audio: Audio) {
+        audioPlayerService.play(audio)
+        _uiState.update { it.copy(currentAudio = audio) }
+    }
+
+    fun togglePlayPause() {
+        audioPlayerService.togglePlayPause()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        audioPlayerService.release()
     }
 } 

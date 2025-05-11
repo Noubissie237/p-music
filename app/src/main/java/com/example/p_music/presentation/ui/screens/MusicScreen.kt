@@ -3,8 +3,6 @@ package com.example.p_music.presentation.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,17 +24,6 @@ fun MusicScreen(
     viewModel: MusicViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var isPlaying by remember { mutableStateOf(false) }
-    var currentProgress by remember { mutableStateOf(0f) }
-    var currentSong by remember { mutableStateOf<Audio?>(null) }
-
-    // Effet pour démarrer la lecture automatiquement lorsqu'une nouvelle chanson est sélectionnée
-    LaunchedEffect(currentSong) {
-        if (currentSong != null) {
-            isPlaying = true
-            // TODO: Démarrer la lecture de la musique ici
-        }
-    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -44,7 +31,7 @@ fun MusicScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (currentSong != null) 72.dp else 0.dp)
+                .padding(bottom = if (uiState.currentAudio != null) 72.dp else 0.dp)
         ) {
             SpotifySearchBar(
                 query = uiState.searchQuery,
@@ -87,8 +74,7 @@ fun MusicScreen(
                                     subtitle = audio.artist,
                                     imageUrl = audio.coverUri?.toString(),
                                     onClick = {
-                                        currentSong = audio
-                                        // La lecture démarrera automatiquement grâce au LaunchedEffect
+                                        viewModel.playAudio(audio)
                                     }
                                 )
                             }
@@ -99,19 +85,16 @@ fun MusicScreen(
         }
 
         // MiniPlayer
-        currentSong?.let { song ->
+        uiState.currentAudio?.let { audio ->
             MiniPlayer(
-                title = song.title,
-                artist = song.artist,
-                isPlaying = isPlaying,
-                progress = currentProgress,
-                onPlayPauseClick = { 
-                    isPlaying = !isPlaying
-                    // TODO: Mettre en pause/reprendre la lecture
-                },
+                title = audio.title,
+                artist = audio.artist,
+                isPlaying = uiState.isPlaying,
+                progress = uiState.progress,
+                onPlayPauseClick = { viewModel.togglePlayPause() },
                 onNextClick = { /* TODO: Implémenter la logique */ },
                 onPreviousClick = { /* TODO: Implémenter la logique */ },
-                onPlayerClick = { onAudioClick(song) },
+                onPlayerClick = { onAudioClick(audio) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()

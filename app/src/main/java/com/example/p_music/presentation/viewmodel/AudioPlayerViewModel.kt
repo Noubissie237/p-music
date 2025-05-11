@@ -79,24 +79,26 @@ class AudioPlayerViewModel @Inject constructor(
 
     fun loadAudio(audioId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                audioRepository.getAudioById(audioId)?.let { audio ->
-                    audioPlayerService.playAudio(audio)
-                } ?: run {
+            if (_uiState.value.currentAudio?.id != audioId) {
+                _uiState.update { it.copy(isLoading = true) }
+                try {
+                    audioRepository.getAudioById(audioId)?.let { audio ->
+                        audioPlayerService.playAudio(audio)
+                    } ?: run {
+                        _uiState.update { 
+                            it.copy(
+                                error = "Audio non trouvé",
+                                isLoading = false
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
                     _uiState.update { 
                         it.copy(
-                            error = "Audio non trouvé",
+                            error = e.message ?: "Une erreur est survenue",
                             isLoading = false
                         )
                     }
-                }
-            } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(
-                        error = e.message ?: "Une erreur est survenue",
-                        isLoading = false
-                    )
                 }
             }
         }

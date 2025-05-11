@@ -1,19 +1,20 @@
 package com.example.p_music.presentation.viewmodel
 
-import android.app.Application
-import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
+import android.content.Context
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
+import com.example.p_music.domain.repository.FavoriteAudioRepository
 import com.example.p_music.domain.usecase.favorite.GetFavoritesUseCase
 import com.example.p_music.domain.usecase.favorite.ToggleFavoriteUseCase
 import com.example.p_music.domain.usecase.GetAudiosUseCase
 import android.media.MediaPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,19 +25,31 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
+data class AudioPlayerUiState(
+    val currentAudio: Audio? = null,
+    val isPlaying: Boolean = false,
+    val isFavorite: Boolean = false,
+    val isLoading: Boolean = false,
+    val currentPosition: Long = 0,
+    val duration: Long = 0,
+    val error: String? = null,
+    val audioList: List<Audio> = emptyList()
+)
+
 @HiltViewModel
 class AudioPlayerViewModel @Inject constructor(
-    application: Application,
-    private val repository: AudioRepository,
+    @ApplicationContext private val context: Context,
+    private val audioRepository: AudioRepository,
+    private val favoriteAudioRepository: FavoriteAudioRepository,
     private val getFavoritesUseCase: GetFavoritesUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val getAudiosUseCase: GetAudiosUseCase
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
+    private var player: ExoPlayer? = null
     private val _uiState = MutableStateFlow(AudioPlayerUiState())
     val uiState: StateFlow<AudioPlayerUiState> = _uiState.asStateFlow()
 
-    private var exoPlayer: ExoPlayer? = null
     private var currentAudioList: List<Audio> = emptyList()
     private var currentAudioIndex: Int = -1
     private var mediaPlayer: MediaPlayer? = null
@@ -44,42 +57,45 @@ class AudioPlayerViewModel @Inject constructor(
     private var isPlaying = false
 
     init {
-        initializeExoPlayer()
-        loadAudios()
+        initializePlayer()
+        loadAudioList()
         observeFavorites()
     }
 
-    private fun initializeExoPlayer() {
-        exoPlayer = ExoPlayer.Builder(getApplication()).build().apply {
+    private fun initializePlayer() {
+        player = ExoPlayer.Builder(context).build().apply {
             addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    when (state) {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    when (playbackState) {
                         Player.STATE_READY -> {
-                            _uiState.update { it.copy(isPlaying = isPlaying) }
+                            _uiState.update { it.copy(
+                                isPlaying = isPlaying,
+                                duration = duration,
+                                error = null
+                            ) }
                         }
                         Player.STATE_ENDED -> {
-                            playNext()
+                            _uiState.update { it.copy(isPlaying = false) }
+                        }
+                        Player.STATE_BUFFERING -> {
+                            // Gérer le buffering si nécessaire
+                        }
+                        Player.STATE_IDLE -> {
+                            // Gérer l'état idle si nécessaire
                         }
                     }
-                }
-
-                override fun onIsPlayingChanged(playing: Boolean) {
-                    _uiState.update { it.copy(isPlaying = playing) }
                 }
             })
         }
     }
 
-    private fun loadAudios() {
-        getAudiosUseCase()
-            .onEach { audios ->
+    private fun loadAudioList() {
+        viewModelScope.launch {
+            audioRepository.getAudios().collect { audios ->
                 currentAudioList = audios
                 _uiState.update { it.copy(audioList = audios) }
             }
-            .catch { error ->
-                _uiState.update { it.copy(error = error.message ?: "Une erreur est survenue") }
-            }
-            .launchIn(viewModelScope)
+        }
     }
 
     private fun observeFavorites() {
@@ -102,73 +118,73 @@ class AudioPlayerViewModel @Inject constructor(
         }
     }
 
-    fun playAudio(audio: Audio) {
-        val index = currentAudioList.indexOf(audio)
-        if (index != -1) {
-            currentAudioIndex = index
-            exoPlayer?.apply {
-                setMediaItem(MediaItem.fromUri(audio.uri))
-                prepare()
-                play()
+    fun loadAudio(audioId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val audio = audioRepository.getAudioById(audioId)
+                if (audio != null) {
+                    _uiState.update { it.copy(
+                        currentAudio = audio,
+                        duration = audio.duration,
+                        isLoading = false
+                    ) }
+                    player?.setMediaItem(MediaItem.fromUri(audio.uri))
+                    player?.prepare()
+                    checkFavoriteStatus(audio.id)
+                } else {
+                    _uiState.update { it.copy(
+                        error = "Audio non trouvé",
+                        isLoading = false
+                    ) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    error = e.message ?: "Erreur inconnue",
+                    isLoading = false
+                ) }
             }
-            _uiState.update { 
-                it.copy(
-                    currentAudio = audio,
-                    isPlaying = true
-                )
-            }
+        }
+    }
+
+    private fun checkFavoriteStatus(audioId: String) {
+        viewModelScope.launch {
+            val isFavorite = favoriteAudioRepository.isFavorite(audioId)
+            _uiState.update { it.copy(isFavorite = isFavorite) }
         }
     }
 
     fun togglePlayPause() {
-        exoPlayer?.let { player ->
-            if (player.isPlaying) {
-                player.pause()
+        player?.let {
+            if (it.isPlaying) {
+                it.pause()
+                _uiState.update { state -> state.copy(isPlaying = false) }
             } else {
-                player.play()
+                it.play()
+                _uiState.update { state -> state.copy(isPlaying = true) }
             }
-            _uiState.update { it.copy(isPlaying = player.isPlaying) }
-        }
-    }
-
-    fun playNext() {
-        if (currentAudioList.isNotEmpty()) {
-            currentAudioIndex = (currentAudioIndex + 1) % currentAudioList.size
-            playAudio(currentAudioList[currentAudioIndex])
-        }
-    }
-
-    fun playPrevious() {
-        if (currentAudioList.isNotEmpty()) {
-            currentAudioIndex = if (currentAudioIndex > 0) currentAudioIndex - 1 else currentAudioList.size - 1
-            playAudio(currentAudioList[currentAudioIndex])
         }
     }
 
     fun seekTo(position: Long) {
-        exoPlayer?.seekTo(position)
+        player?.seekTo(position)
+        _uiState.update { it.copy(currentPosition = position) }
     }
 
     fun toggleFavorite() {
-        viewModelScope.launch {
-            _uiState.value.currentAudio?.let { audio ->
-                toggleFavoriteUseCase(audio)
+        _uiState.value.currentAudio?.let { audio ->
+            viewModelScope.launch {
+                favoriteAudioRepository.toggleFavorite(audio)
+                checkFavoriteStatus(audio.id)
             }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        exoPlayer?.release()
-        exoPlayer = null
+        player?.release()
+        player = null
         mediaPlayer?.release()
         mediaPlayer = null
     }
-}
-
-data class AudioPlayerUiState(
-    val audioList: List<Audio> = emptyList(),
-    val currentAudio: Audio? = null,
-    val isPlaying: Boolean = false,
-    val error: String? = null
-) 
+} 

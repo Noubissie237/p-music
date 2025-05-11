@@ -10,9 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,37 +26,34 @@ import com.example.p_music.presentation.ui.theme.SpotifyDarkGray
 import com.example.p_music.presentation.ui.theme.SpotifyGreen
 import com.example.p_music.presentation.ui.theme.SpotifyLightGray
 import com.example.p_music.presentation.viewmodel.MusicViewModel
+import com.example.p_music.presentation.viewmodel.MusicUiState
 
 @Composable
 fun MusicScreen(
+    onAudioClick: (Audio) -> Unit,
     viewModel: MusicViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val errorMessage = uiState.error
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SpotifyDarkGray)
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
         when {
             uiState.isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = SpotifyGreen
-                )
+                CircularProgressIndicator()
             }
-            uiState.error != null -> {
+            errorMessage != null -> {
                 Text(
-                    text = "Erreur : ${uiState.error}",
-                    color = Color.Red,
-                    modifier = Modifier.align(Alignment.Center)
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
             uiState.audioList.isEmpty() -> {
                 Text(
-                    text = "Aucune musique trouvée",
-                    color = SpotifyLightGray,
-                    modifier = Modifier.align(Alignment.Center)
+                    text = "Aucun audio trouvé",
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
             else -> {
@@ -68,7 +63,10 @@ fun MusicScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(uiState.audioList) { audio ->
-                        AudioItem(audio = audio)
+                        AudioItem(
+                            audio = audio,
+                            onClick = { onAudioClick(audio) }
+                        )
                     }
                 }
             }
@@ -77,67 +75,29 @@ fun MusicScreen(
 }
 
 @Composable
-private fun AudioItem(audio: Audio) {
+private fun AudioItem(
+    audio: Audio,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SpotifyDarkGray.copy(alpha = 0.5f)
-        )
+            .padding(vertical = 4.dp),
+        onClick = onClick
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            // Miniature par défaut
-            Image(
-                painter = painterResource(id = R.drawable.ic_music_note),
-                contentDescription = "Miniature",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                contentScale = ContentScale.Crop
+            Text(
+                text = audio.title,
+                style = MaterialTheme.typography.titleMedium
             )
-
-            // Informations
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp)
-            ) {
-                Text(
-                    text = audio.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = audio.artist,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SpotifyLightGray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Bouton Lecture
-            IconButton(
-                onClick = { /* TODO: Implémenter la lecture */ },
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(SpotifyGreen)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Lire",
-                    tint = Color.White
-                )
-            }
+            Text(
+                text = audio.artist,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 } 

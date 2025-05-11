@@ -3,21 +3,21 @@ package com.example.p_music.domain.model
 import android.net.Uri
 
 data class Audio(
-    val id: Long,
+    val id: String,
     val title: String,
     val artist: String,
-    val album: String,
-    val duration: Long, // en millisecondes
-    val uri: Uri,
+    val duration: Long,
     val path: String,
-    val coverUri: Uri? = null,
-    val size: Long = 0,
-    val dateAdded: Long = 0,
+    val album: String,
+    val uri: Uri,
+    val coverUri: Uri?,
+    val size: Long,
+    val dateAdded: Long,
     val isFavorite: Boolean = false
 ) {
     companion object {
         val SUPPORTED_FORMATS = listOf(
-            "mp3", "wav", "aac", "ogg", "m4a", "flac"
+            "mp3", "wav", "ogg", "m4a", "flac", "aac"
         )
     }
 } 

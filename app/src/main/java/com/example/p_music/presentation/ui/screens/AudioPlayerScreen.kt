@@ -1,242 +1,122 @@
 package com.example.p_music.presentation.ui.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
+import com.example.p_music.R
 import com.example.p_music.domain.model.Audio
-import com.example.p_music.presentation.ui.theme.SpotifyDarkGray
-import com.example.p_music.presentation.ui.theme.SpotifyGreen
-import com.example.p_music.presentation.ui.theme.SpotifyLightGray
 import com.example.p_music.presentation.viewmodel.AudioPlayerViewModel
-import java.util.concurrent.TimeUnit
+import com.example.p_music.presentation.viewmodel.AudioPlayerUiState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPlayerScreen(
-    viewModel: AudioPlayerViewModel = hiltViewModel()
+    viewModel: AudioPlayerViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SpotifyDarkGray)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // Liste des chansons
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                items(uiState.audioList) { audio ->
-                    AudioItem(
-                        audio = audio,
-                        isPlaying = audio == uiState.currentAudio,
-                        onItemClick = { viewModel.playAudio(audio) }
-                    )
-                }
+        when {
+            uiState.isLoading -> {
+                CircularProgressIndicator()
+            }
+            uiState.error != null -> {
+                Text(
+                    text = uiState.error!!,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            uiState.currentAudio != null -> {
+                AudioContent(
+                    uiState = uiState,
+                    onPlayPauseClick = { viewModel.togglePlayPause() },
+                    onSeek = { viewModel.seekTo(it) },
+                    onFavoriteClick = { viewModel.toggleFavorite() }
+                )
             }
         }
-
-        // Mini-player
-        uiState.currentAudio?.let { currentAudio ->
-            MiniPlayer(
-                audio = currentAudio,
-                isPlaying = uiState.isPlaying,
-                onPlayPauseClick = { viewModel.togglePlayPause() },
-                onNextClick = { viewModel.playNext() },
-                onPreviousClick = { viewModel.playPrevious() },
-                onFavoriteClick = { viewModel.toggleFavorite() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(SpotifyDarkGray.copy(alpha = 0.95f))
-            )
-        }
     }
 }
 
 @Composable
-fun AudioItem(
-    audio: Audio,
-    isPlaying: Boolean,
-    onItemClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onItemClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Couverture
-        Image(
-            painter = rememberAsyncImagePainter(
-                ImageRequest.Builder(LocalContext.current)
-                    .data(audio.coverUri)
-                    .crossfade(true)
-                    .build()
-            ),
-            contentDescription = "Album cover",
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            contentScale = ContentScale.Crop
-        )
-
-        // Informations
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 12.dp)
-        ) {
-            Text(
-                text = audio.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isPlaying) SpotifyGreen else Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = audio.artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = SpotifyLightGray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        // Bouton favori
-        IconButton(
-            onClick = { /* Géré par le ViewModel */ },
-            modifier = Modifier.size(24.dp)
-        ) {
-            Icon(
-                imageVector = if (audio.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (audio.isFavorite) "Retirer des favoris" else "Ajouter aux favoris",
-                tint = if (audio.isFavorite) SpotifyGreen else SpotifyLightGray
-            )
-        }
-
-        // Durée
-        Text(
-            text = formatDuration(audio.duration),
-            style = MaterialTheme.typography.bodySmall,
-            color = SpotifyLightGray
-        )
-    }
-}
-
-@Composable
-fun MiniPlayer(
-    audio: Audio,
-    isPlaying: Boolean,
+private fun AudioContent(
+    uiState: AudioPlayerUiState,
     onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit,
-    onPreviousClick: () -> Unit,
-    onFavoriteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onSeek: (Long) -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
-    Row(
-        modifier = modifier
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Couverture
-        Image(
-            painter = rememberAsyncImagePainter(
-                ImageRequest.Builder(LocalContext.current)
-                    .data(audio.coverUri)
-                    .crossfade(true)
-                    .build()
-            ),
-            contentDescription = "Album cover",
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            contentScale = ContentScale.Crop
-        )
+    val audio = uiState.currentAudio!!
 
-        // Informations
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 12.dp)
-        ) {
-            Text(
-                text = audio.title,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = audio.artist,
-                style = MaterialTheme.typography.bodySmall,
-                color = SpotifyLightGray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Pochette de l'album
+        audio.coverUri?.let { uri ->
+            Image(
+                painter = painterResource(id = R.drawable.ic_music_note),
+                contentDescription = "Pochette de l'album",
+                modifier = Modifier
+                    .size(300.dp)
+                    .padding(16.dp),
+                contentScale = ContentScale.Fit
             )
         }
 
-        // Contrôles
+        // Informations sur la musique
+        Text(
+            text = audio.title,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        Text(
+            text = audio.artist,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Contrôles de lecture
         Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onPreviousClick) {
+            IconButton(onClick = onFavoriteClick) {
                 Icon(
-                    imageVector = Icons.Default.SkipPrevious,
-                    contentDescription = "Précédent",
-                    tint = Color.White
+                    imageVector = if (audio.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favoris"
                 )
             }
 
             IconButton(onClick = onPlayPauseClick) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Lecture",
-                    tint = Color.White
-                )
-            }
-
-            IconButton(onClick = onNextClick) {
-                Icon(
-                    imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Suivant",
-                    tint = Color.White
+                    imageVector = if (uiState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (uiState.isPlaying) "Pause" else "Lecture"
                 )
             }
         }
-    }
-}
 
-private fun formatDuration(durationMs: Long): String {
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
-    return String.format("%02d:%02d", minutes, seconds)
+        // Barre de progression
+        Slider(
+            value = uiState.currentPosition.toFloat(),
+            onValueChange = { onSeek(it.toLong()) },
+            valueRange = 0f..uiState.duration.toFloat(),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+    }
 } 

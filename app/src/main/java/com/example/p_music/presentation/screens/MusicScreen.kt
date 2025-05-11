@@ -6,49 +6,52 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.p_music.data.repository.AudioRepository
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.p_music.domain.model.Audio
+import com.example.p_music.presentation.viewmodel.MusicViewModel
 
 @Composable
-fun MusicScreen() {
-    val context = LocalContext.current
-    val audioRepository = remember { AudioRepository(context) }
-    var audioList by remember { mutableStateOf<List<Audio>>(emptyList()) }
-    
-    LaunchedEffect(Unit) {
-        audioList = audioRepository.getAllAudios()
-    }
-    
+fun MusicScreen(
+    onAudioClick: (Audio) -> Unit,
+    viewModel: MusicViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(audioList) { audio ->
-            AudioItem(audio = audio)
+        items(uiState.audioList) { audio ->
+            AudioItem(
+                audio = audio,
+                onClick = { onAudioClick(audio) }
+            )
         }
     }
 }
 
 @Composable
-fun AudioItem(audio: Audio) {
+private fun AudioItem(
+    audio: Audio,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
                 .fillMaxWidth()
+                .padding(16.dp)
         ) {
             Text(
                 text = audio.title,
                 style = MaterialTheme.typography.titleMedium
             )
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = audio.artist,
                 style = MaterialTheme.typography.bodyMedium

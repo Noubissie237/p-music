@@ -6,5 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface FavoriteAudioRepository {
     fun getAllFavorites(): Flow<List<Audio>>
     suspend fun toggleFavorite(audio: Audio)
-    suspend fun isFavorite(audioId: Long): Boolean
+    suspend fun isFavorite(audioId: String): Boolean
 } 

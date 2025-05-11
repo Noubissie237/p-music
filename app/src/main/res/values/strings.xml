@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">P-Music</string>
+    <string name="app_name">P Music</string>
+    <string name="music">Musique</string>
+    <string name="videos">Vidéos</string>
+    <string name="favorites">Favoris</string>
+    <string name="playlists">Playlists</string>
+    <string name="settings">Paramètres</string>
+    <string name="audio_player">Lecteur audio</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="next">Next</string>
@@ -9,5 +15,4 @@
     <string name="unfavorite">Unfavorite</string>
     <string name="playlist">Playlist</string>
     <string name="library">Library</string>
-    <string name="settings">Settings</string>
 </resources>

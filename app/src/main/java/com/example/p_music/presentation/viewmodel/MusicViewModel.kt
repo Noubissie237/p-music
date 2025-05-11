@@ -2,12 +2,13 @@ package com.example.p_music.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.p_music.domain.repository.AudioRepository
 import com.example.p_music.domain.model.Audio
+import com.example.p_music.domain.repository.AudioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,19 +32,8 @@ class MusicViewModel @Inject constructor(
 
     private fun loadAudios() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val audios = audioRepository.getAllAudios()
-                _uiState.value = _uiState.value.copy(
-                    audioList = audios,
-                    isLoading = false,
-                    error = null
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Une erreur est survenue"
-                )
+            audioRepository.getAudios().collect { audios ->
+                _uiState.update { it.copy(audioList = audios) }
             }
         }
     }

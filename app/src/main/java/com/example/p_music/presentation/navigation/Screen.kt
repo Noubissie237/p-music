@@ -1,13 +1,28 @@
 package com.example.p_music.presentation.navigation
 
-sealed class Screen(val route: String, val icon: Int, val label: String) {
-    object Music : Screen("music", android.R.drawable.ic_media_play, "Musique")
-    object Videos : Screen("videos", android.R.drawable.ic_menu_gallery, "Vidéos")
-    object Favorites : Screen("favorites", android.R.drawable.btn_star_big_on, "Favoris")
-    object Playlists : Screen("playlists", android.R.drawable.ic_menu_sort_by_size, "Playlists")
-    object Settings : Screen("settings", android.R.drawable.ic_menu_manage, "Paramètres")
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.p_music.R
 
-    companion object {
-        val bottomNavItems = listOf(Music, Videos, Favorites, Playlists, Settings)
+sealed class Screen(
+    val route: String,
+    val titleResId: Int
+) {
+    object Music : Screen("music", R.string.music)
+    object Videos : Screen("videos", R.string.videos)
+    object Favorites : Screen("favorites", R.string.favorites)
+    object Playlists : Screen("playlists", R.string.playlists)
+    object Settings : Screen("settings", R.string.settings)
+    object AudioPlayer : Screen("audio_player/{audioId}", R.string.audio_player) {
+        fun createRoute(audioId: String) = "audio_player/$audioId"
+        
+        val arguments = listOf(
+            navArgument("audioId") {
+                type = NavType.StringType
+            }
+        )
     }
 } 

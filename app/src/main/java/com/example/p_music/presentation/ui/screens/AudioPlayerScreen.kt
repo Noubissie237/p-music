@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -18,6 +19,7 @@ import com.example.p_music.R
 import com.example.p_music.presentation.ui.components.*
 import com.example.p_music.presentation.utils.formatDuration
 import com.example.p_music.presentation.viewmodel.AudioPlayerViewModel
+import androidx.compose.foundation.shape.CircleShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,34 +117,91 @@ fun AudioPlayerScreen(
 
             // Contrôles de lecture
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { viewModel.playPrevious() }) {
-                    Icon(
-                        Icons.Default.SkipPrevious,
-                        contentDescription = "Précédent",
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-
+                // Bouton lecture en boucle
                 IconButton(
-                    onClick = { viewModel.togglePlayPause() },
-                    modifier = Modifier.size(64.dp)
+                    onClick = { viewModel.toggleRepeatMode() },
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
-                        if (uiState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (uiState.isPlaying) "Pause" else "Lecture",
-                        modifier = Modifier.size(48.dp)
+                        imageVector = if (uiState.isRepeatMode) {
+                            Icons.Filled.RepeatOne
+                        } else {
+                            Icons.Filled.Repeat
+                        },
+                        contentDescription = "Lecture en boucle",
+                        tint = if (uiState.isRepeatMode) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
                     )
                 }
 
-                IconButton(onClick = { viewModel.playNext() }) {
+                // Bouton précédent
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    modifier = Modifier.size(48.dp)
+                ) {
                     Icon(
-                        Icons.Default.SkipNext,
+                        imageVector = Icons.Filled.SkipPrevious,
+                        contentDescription = "Précédent",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Bouton play/pause
+                IconButton(
+                    onClick = { viewModel.togglePlayPause() },
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = if (uiState.isPlaying) {
+                            Icons.Filled.Pause
+                        } else {
+                            Icons.Filled.PlayArrow
+                        },
+                        contentDescription = if (uiState.isPlaying) "Pause" else "Lecture",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                // Bouton suivant
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipNext,
                         contentDescription = "Suivant",
-                        modifier = Modifier.size(48.dp)
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Bouton lecture aléatoire
+                IconButton(
+                    onClick = { viewModel.toggleShuffleMode() },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = "Lecture aléatoire",
+                        tint = if (uiState.isShuffleMode) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
                     )
                 }
             }

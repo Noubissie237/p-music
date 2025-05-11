@@ -41,6 +41,12 @@ class AudioPlayerService @Inject constructor(
     private val _remainingTime = MutableStateFlow(0L)
     val remainingTime: StateFlow<Long> = _remainingTime.asStateFlow()
 
+    private val _isRepeatMode = MutableStateFlow(false)
+    val isRepeatMode: StateFlow<Boolean> = _isRepeatMode.asStateFlow()
+
+    private val _isShuffleMode = MutableStateFlow(false)
+    val isShuffleMode: StateFlow<Boolean> = _isShuffleMode.asStateFlow()
+
     init {
         setupExoPlayer()
     }
@@ -56,7 +62,12 @@ class AudioPlayerService @Inject constructor(
                         }
                     }
                     Player.STATE_ENDED -> {
-                        playNext()
+                        if (_isRepeatMode.value) {
+                            exoPlayer.seekTo(0)
+                            exoPlayer.play()
+                        } else {
+                            playNext()
+                        }
                     }
                 }
             }
@@ -127,14 +138,22 @@ class AudioPlayerService @Inject constructor(
     fun playNext() {
         if (playlist.isEmpty()) return
         
-        currentIndex = (currentIndex + 1) % playlist.size
+        if (_isShuffleMode.value) {
+            currentIndex = (0 until playlist.size).random()
+        } else {
+            currentIndex = (currentIndex + 1) % playlist.size
+        }
         prepareAndPlay(playlist[currentIndex])
     }
 
     fun playPrevious() {
         if (playlist.isEmpty()) return
         
-        currentIndex = if (currentIndex > 0) currentIndex - 1 else playlist.size - 1
+        if (_isShuffleMode.value) {
+            currentIndex = (0 until playlist.size).random()
+        } else {
+            currentIndex = if (currentIndex > 0) currentIndex - 1 else playlist.size - 1
+        }
         prepareAndPlay(playlist[currentIndex])
     }
 
@@ -147,6 +166,14 @@ class AudioPlayerService @Inject constructor(
             _elapsedTime.value = newPosition
             _remainingTime.value = duration - newPosition
         }
+    }
+
+    fun toggleRepeatMode() {
+        _isRepeatMode.value = !_isRepeatMode.value
+    }
+
+    fun toggleShuffleMode() {
+        _isShuffleMode.value = !_isShuffleMode.value
     }
 
     fun release() {

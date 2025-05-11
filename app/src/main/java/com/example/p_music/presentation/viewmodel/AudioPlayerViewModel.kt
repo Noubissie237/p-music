@@ -21,7 +21,9 @@ data class AudioPlayerUiState(
     val progress: Float = 0f,
     val elapsedTime: Long = 0L,
     val remainingTime: Long = 0L,
-    val error: String? = null
+    val error: String? = null,
+    val isRepeatMode: Boolean = false,
+    val isShuffleMode: Boolean = false
 )
 
 @HiltViewModel
@@ -43,23 +45,39 @@ class AudioPlayerViewModel @Inject constructor(
 
     private fun observePlayerState() {
         viewModelScope.launch {
-            combine(
-                audioPlayerService.currentAudio,
-                audioPlayerService.isPlaying,
-                audioPlayerService.currentProgress,
-                audioPlayerService.elapsedTime,
-                audioPlayerService.remainingTime
-            ) { audio, isPlaying, progress, elapsed, remaining ->
-                _uiState.update { 
-                    it.copy(
-                        currentAudio = audio,
-                        isPlaying = isPlaying,
-                        progress = progress,
-                        elapsedTime = elapsed,
-                        remainingTime = remaining
-                    )
-                }
-            }.collect()
+            audioPlayerService.currentAudio.collect { audio ->
+                _uiState.update { it.copy(currentAudio = audio) }
+            }
+        }
+        viewModelScope.launch {
+            audioPlayerService.isPlaying.collect { isPlaying ->
+                _uiState.update { it.copy(isPlaying = isPlaying) }
+            }
+        }
+        viewModelScope.launch {
+            audioPlayerService.currentProgress.collect { progress ->
+                _uiState.update { it.copy(progress = progress) }
+            }
+        }
+        viewModelScope.launch {
+            audioPlayerService.elapsedTime.collect { elapsed ->
+                _uiState.update { it.copy(elapsedTime = elapsed) }
+            }
+        }
+        viewModelScope.launch {
+            audioPlayerService.remainingTime.collect { remaining ->
+                _uiState.update { it.copy(remainingTime = remaining) }
+            }
+        }
+        viewModelScope.launch {
+            audioPlayerService.isRepeatMode.collect { isRepeat ->
+                _uiState.update { it.copy(isRepeatMode = isRepeat) }
+            }
+        }
+        viewModelScope.launch {
+            audioPlayerService.isShuffleMode.collect { isShuffle ->
+                _uiState.update { it.copy(isShuffleMode = isShuffle) }
+            }
         }
     }
 
@@ -78,30 +96,8 @@ class AudioPlayerViewModel @Inject constructor(
     }
 
     fun loadAudio(audioId: String) {
-        viewModelScope.launch {
-            if (_uiState.value.currentAudio?.id != audioId) {
-                _uiState.update { it.copy(isLoading = true) }
-                try {
-                    audioRepository.getAudioById(audioId)?.let { audio ->
-                        audioPlayerService.playAudio(audio)
-                    } ?: run {
-                        _uiState.update { 
-                            it.copy(
-                                error = "Audio non trouvé",
-                                isLoading = false
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    _uiState.update { 
-                        it.copy(
-                            error = e.message ?: "Une erreur est survenue",
-                            isLoading = false
-                        )
-                    }
-                }
-            }
-        }
+        // Cette fonction n'est plus nécessaire car l'audio est déjà chargé
+        // dans le service via le MusicViewModel
     }
 
     fun togglePlayPause() {
@@ -126,5 +122,13 @@ class AudioPlayerViewModel @Inject constructor(
                 toggleFavoriteUseCase(audio)
             }
         }
+    }
+
+    fun toggleRepeatMode() {
+        audioPlayerService.toggleRepeatMode()
+    }
+
+    fun toggleShuffleMode() {
+        audioPlayerService.toggleShuffleMode()
     }
 } 

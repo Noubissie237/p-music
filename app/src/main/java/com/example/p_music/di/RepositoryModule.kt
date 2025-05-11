@@ -45,5 +45,13 @@ abstract class RepositoryModule {
         ): AudioRepositoryImpl {
             return AudioRepositoryImpl(context)
         }
+
+        @Provides
+        @Singleton
+        fun provideFavoriteAudioRepositoryImpl(
+            @ApplicationContext context: Context
+        ): FavoriteAudioRepositoryImpl {
+            return FavoriteAudioRepositoryImpl(context)
+        }
     }
 } 

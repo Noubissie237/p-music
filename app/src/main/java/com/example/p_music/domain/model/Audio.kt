@@ -1,19 +1,18 @@
 package com.example.p_music.domain.model
 
 import android.net.Uri
-import java.time.Duration
 
 data class Audio(
     val id: Long,
     val title: String,
     val artist: String,
     val album: String,
-    val duration: Duration,
+    val duration: Long, // en millisecondes
     val uri: Uri,
-    val coverUri: Uri?,
     val path: String,
-    val size: Long,
-    val dateAdded: Long,
+    val coverUri: Uri? = null,
+    val size: Long = 0,
+    val dateAdded: Long = 0,
     val isFavorite: Boolean = false
 ) {
     companion object {

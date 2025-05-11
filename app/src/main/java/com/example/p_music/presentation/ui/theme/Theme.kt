@@ -15,16 +15,14 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.example.p_music.presentation.ui.theme.SpotifyGreen
+import com.example.p_music.presentation.ui.theme.SpotifyDarkGray
+import com.example.p_music.presentation.ui.theme.SpotifyLightGray
 
 private val DarkColorScheme = darkColorScheme(
     primary = SpotifyGreen,
-    secondary = SpotifyLightGray,
-    tertiary = SpotifyDarkGray,
-    background = Color.Black,
-    surface = SpotifyDarkGray,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
+    background = SpotifyDarkGray,
+    surface = Color(0xFF282828),
     onBackground = Color.White,
     onSurface = Color.White
 )
@@ -43,7 +41,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun P_MusicTheme(
+fun PMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit

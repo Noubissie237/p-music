@@ -1,22 +1,40 @@
 package com.example.p_music.presentation.ui.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.p_music.R
+import com.example.p_music.domain.model.Audio
 import com.example.p_music.presentation.navigation.Screen
-import com.example.p_music.presentation.theme.PMusicTheme
+import com.example.p_music.presentation.ui.theme.PMusicTheme
+import com.example.p_music.presentation.ui.theme.SpotifyDarkGray
+import com.example.p_music.presentation.ui.theme.SpotifyGreen
+import com.example.p_music.presentation.ui.theme.SpotifyLightGray
+import com.example.p_music.presentation.viewmodel.MusicViewModel
+import com.example.p_music.presentation.ui.screens.MusicScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,31 +86,24 @@ fun MainScreen() {
                 modifier = Modifier.padding(paddingValues)
             ) {
                 composable(Screen.Music.route) {
-                    // TODO: Implémenter l'écran de musique
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text("Écran Musique")
-                    }
+                    MusicScreen()
                 }
                 composable(Screen.Videos.route) {
-                    // TODO: Implémenter l'écran de vidéos
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text("Écran Vidéos")
                     }
                 }
                 composable(Screen.Favorites.route) {
-                    // TODO: Implémenter l'écran des favoris
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text("Écran Favoris")
                     }
                 }
                 composable(Screen.Playlists.route) {
-                    // TODO: Implémenter l'écran des playlists
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text("Écran Playlists")
                     }
                 }
                 composable(Screen.Settings.route) {
-                    // TODO: Implémenter l'écran des paramètres
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text("Écran Paramètres")
                     }

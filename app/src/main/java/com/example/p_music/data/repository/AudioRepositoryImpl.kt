@@ -12,9 +12,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import java.time.Duration
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class AudioRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : AudioRepository {
@@ -30,101 +32,96 @@ class AudioRepositoryImpl @Inject constructor(
         MediaStore.Audio.Media.DATE_ADDED
     )
 
-    override fun getAllAudios(): Flow<List<Audio>> = flow {
+    override suspend fun getAllAudios(): List<Audio> = withContext(Dispatchers.IO) {
         val audioList = mutableListOf<Audio>()
+        
         val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
-
+        
         context.contentResolver.query(
             collection,
             projection,
             selection,
             null,
-            sortOrder
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                createAudioFromCursor(cursor)?.let { audioList.add(it) }
-            }
-        }
-        emit(audioList)
-    }.flowOn(Dispatchers.IO)
-
-    override fun getAudioById(id: Long): Flow<Audio?> = flow<Audio?> {
-        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val selection = "${MediaStore.Audio.Media._ID} = ?"
-        val selectionArgs = arrayOf(id.toString())
-
-        context.contentResolver.query(
-            collection,
-            projection,
-            selection,
-            selectionArgs,
             null
         )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                emit(createAudioFromCursor(cursor))
-            } else {
-                emit(null)
-            }
-        }
-    }.flowOn(Dispatchers.IO)
-
-    override fun getFavorites(): Flow<List<Audio>> = flow<List<Audio>> {
-        // TODO: Implémenter la gestion des favoris avec Room
-        emit(emptyList())
-    }.flowOn(Dispatchers.IO)
-
-    override fun getAudiosByArtist(artist: String): Flow<List<Audio>> = flow {
-        val audioList = mutableListOf<Audio>()
-        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val selection = "${MediaStore.Audio.Media.ARTIST} = ?"
-        val selectionArgs = arrayOf(artist)
-
-        context.contentResolver.query(
-            collection,
-            projection,
-            selection,
-            selectionArgs,
-            null
-        )?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+            val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+            val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            
             while (cursor.moveToNext()) {
-                createAudioFromCursor(cursor)?.let { audioList.add(it) }
+                val id = cursor.getLong(idColumn)
+                val title = cursor.getString(titleColumn)
+                val artist = cursor.getString(artistColumn)
+                val album = cursor.getString(albumColumn)
+                val duration = cursor.getLong(durationColumn)
+                val path = cursor.getString(pathColumn)
+                val size = cursor.getLong(sizeColumn)
+                val dateAdded = cursor.getLong(dateAddedColumn)
+                
+                val contentUri = ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    id
+                )
+                
+                val audio = Audio(
+                    id = id,
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    duration = duration,
+                    uri = contentUri,
+                    path = path,
+                    coverUri = contentUri,
+                    size = size,
+                    dateAdded = dateAdded
+                )
+                
+                audioList.add(audio)
             }
         }
-        emit(audioList)
-    }.flowOn(Dispatchers.IO)
+        
+        audioList
+    }
 
-    override fun getAudiosByAlbum(album: String): Flow<List<Audio>> = flow {
-        val audioList = mutableListOf<Audio>()
-        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val selection = "${MediaStore.Audio.Media.ALBUM} = ?"
-        val selectionArgs = arrayOf(album)
+    override suspend fun getAudioById(id: Long): Audio? = withContext(Dispatchers.IO) {
+        // TODO: Implémenter
+        null
+    }
 
-        context.contentResolver.query(
-            collection,
-            projection,
-            selection,
-            selectionArgs,
-            null
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                createAudioFromCursor(cursor)?.let { audioList.add(it) }
-            }
-        }
-        emit(audioList)
-    }.flowOn(Dispatchers.IO)
+    override suspend fun getFavorites(): List<Audio> = withContext(Dispatchers.IO) {
+        // TODO: Implémenter
+        emptyList()
+    }
+
+    override suspend fun getAudiosByArtist(artist: String): List<Audio> = withContext(Dispatchers.IO) {
+        // TODO: Implémenter
+        emptyList()
+    }
+
+    override suspend fun getAudiosByAlbum(album: String): List<Audio> = withContext(Dispatchers.IO) {
+        // TODO: Implémenter
+        emptyList()
+    }
 
     override suspend fun toggleFavorite(audio: Audio) {
-        // TODO: Implémenter la gestion des favoris avec Room
+        // TODO: Implémenter
     }
 
     override suspend fun updateAudioMetadata(audio: Audio) {
-        // TODO: Implémenter la mise à jour des métadonnées
+        // TODO: Implémenter
     }
 
     override suspend fun deleteAudio(audio: Audio) {
-        context.contentResolver.delete(audio.uri, null, null)
+        withContext(Dispatchers.IO) {
+            context.contentResolver.delete(audio.uri, null, null)
+        }
     }
 
     private fun getAlbumArtUri(albumId: Long): Uri? {
@@ -162,7 +159,7 @@ class AudioRepositoryImpl @Inject constructor(
                 title = title,
                 artist = artist,
                 album = album,
-                duration = Duration.ofMillis(duration),
+                duration = duration,
                 uri = contentUri,
                 coverUri = getAlbumArtUri(id),
                 path = path,

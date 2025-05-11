@@ -11,12 +11,17 @@ import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
 import com.example.p_music.domain.usecase.favorite.GetFavoritesUseCase
 import com.example.p_music.domain.usecase.favorite.ToggleFavoriteUseCase
+import com.example.p_music.domain.usecase.GetAudiosUseCase
+import android.media.MediaPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,7 +29,8 @@ class AudioPlayerViewModel @Inject constructor(
     application: Application,
     private val repository: AudioRepository,
     private val getFavoritesUseCase: GetFavoritesUseCase,
-    private val toggleFavoriteUseCase: ToggleFavoriteUseCase
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
+    private val getAudiosUseCase: GetAudiosUseCase
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(AudioPlayerUiState())
@@ -33,6 +39,9 @@ class AudioPlayerViewModel @Inject constructor(
     private var exoPlayer: ExoPlayer? = null
     private var currentAudioList: List<Audio> = emptyList()
     private var currentAudioIndex: Int = -1
+    private var mediaPlayer: MediaPlayer? = null
+    private var currentAudio: Audio? = null
+    private var isPlaying = false
 
     init {
         initializeExoPlayer()
@@ -62,12 +71,15 @@ class AudioPlayerViewModel @Inject constructor(
     }
 
     private fun loadAudios() {
-        viewModelScope.launch {
-            repository.getAllAudios().collect { audios ->
+        getAudiosUseCase()
+            .onEach { audios ->
                 currentAudioList = audios
                 _uiState.update { it.copy(audioList = audios) }
             }
-        }
+            .catch { error ->
+                _uiState.update { it.copy(error = error.message ?: "Une erreur est survenue") }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun observeFavorites() {
@@ -149,6 +161,8 @@ class AudioPlayerViewModel @Inject constructor(
         super.onCleared()
         exoPlayer?.release()
         exoPlayer = null
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 }
 
@@ -156,6 +170,5 @@ data class AudioPlayerUiState(
     val audioList: List<Audio> = emptyList(),
     val currentAudio: Audio? = null,
     val isPlaying: Boolean = false,
-    val currentPosition: Long = 0L,
-    val duration: Long = 0L
+    val error: String? = null
 ) 

@@ -145,7 +145,7 @@ fun AudioItem(
 
         // Durée
         Text(
-            text = formatDuration(audio.duration.toMillis()),
+            text = formatDuration(audio.duration),
             style = MaterialTheme.typography.bodySmall,
             color = SpotifyLightGray
         )
@@ -206,27 +206,20 @@ fun MiniPlayer(
 
         // Contrôles
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onPreviousClick) {
                 Icon(
                     imageVector = Icons.Default.SkipPrevious,
-                    contentDescription = "Previous",
+                    contentDescription = "Précédent",
                     tint = Color.White
                 )
             }
 
-            IconButton(
-                onClick = onPlayPauseClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(SpotifyGreen)
-            ) {
+            IconButton(onClick = onPlayPauseClick) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentDescription = if (isPlaying) "Pause" else "Lecture",
                     tint = Color.White
                 )
             }
@@ -234,16 +227,8 @@ fun MiniPlayer(
             IconButton(onClick = onNextClick) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next",
+                    contentDescription = "Suivant",
                     tint = Color.White
-                )
-            }
-
-            IconButton(onClick = onFavoriteClick) {
-                Icon(
-                    imageVector = if (audio.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (audio.isFavorite) "Retirer des favoris" else "Ajouter aux favoris",
-                    tint = if (audio.isFavorite) SpotifyGreen else SpotifyLightGray
                 )
             }
         }
@@ -252,7 +237,6 @@ fun MiniPlayer(
 
 private fun formatDuration(durationMs: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) -
-            TimeUnit.MINUTES.toSeconds(minutes)
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
     return String.format("%02d:%02d", minutes, seconds)
 } 

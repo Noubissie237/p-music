@@ -185,29 +185,40 @@ fun AudioPlayerScreen(
                 Canvas(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
+                        .height(100.dp)
                         .padding(vertical = 16.dp)
                 ) {
                     val width = size.width
                     val height = size.height
-                    val barCount = 20
-                    val barWidth = width / barCount
+                    val circleCount = 5
+                    val spacing = width / (circleCount + 1)
                     
-                    for (i in 0 until barCount) {
-                        val x = i * barWidth + barWidth / 2
-                        val amplitude = height * 0.4f
-                        val frequency = 2f
-                        val offset = i * 0.2f
+                    for (i in 0 until circleCount) {
+                        val centerX = spacing * (i + 1)
+                        val centerY = height / 2
+                        val offset = i * 0.5f
                         
-                        val y1 = height / 2 + amplitude * sin(phase + offset) * sin(phase * frequency)
-                        val y2 = height / 2 - amplitude * sin(phase + offset) * sin(phase * frequency)
+                        // Cercle extérieur
+                        val outerRadius = height * 0.4f * (0.7f + 0.3f * sin(phase + offset))
+                        drawCircle(
+                            color = SpotifyColors.Green.copy(alpha = 0.2f),
+                            radius = outerRadius,
+                            center = Offset(centerX, centerY)
+                        )
                         
-                        drawLine(
-                            color = SpotifyColors.Green,
-                            start = Offset(x, y1),
-                            end = Offset(x, y2),
-                            strokeWidth = barWidth * 0.8f,
-                            cap = StrokeCap.Round
+                        // Cercle intérieur
+                        val innerRadius = height * 0.2f * (0.5f + 0.5f * sin(phase + offset + 0.5f))
+                        drawCircle(
+                            color = SpotifyColors.Green.copy(alpha = 0.8f),
+                            radius = innerRadius,
+                            center = Offset(centerX, centerY)
+                        )
+                        
+                        // Point central
+                        drawCircle(
+                            color = Color.White,
+                            radius = 4.dp.toPx(),
+                            center = Offset(centerX, centerY)
                         )
                     }
                 }

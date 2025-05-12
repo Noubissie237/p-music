@@ -1,7 +1,8 @@
 package com.example.p_music.presentation.viewmodel
 
 import android.app.Application
-import android.net.Uri
+import android.content.Context
+import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -11,13 +12,14 @@ import com.example.p_music.domain.model.Video
 import com.example.p_music.domain.repository.VideoRepository
 import com.example.p_music.domain.usecase.video.GetVideosUseCase
 import com.example.p_music.domain.usecase.video.ToggleVideoFavoriteUseCase
+import com.example.p_music.presentation.ui.screens.extractThumbnail
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.runtime.mutableStateMapOf
+
 
 data class VideoPlayerUiState(
     val currentVideo: Video? = null,
@@ -39,6 +41,10 @@ class VideoPlayerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(VideoPlayerUiState())
     val uiState: StateFlow<VideoPlayerUiState> = _uiState.asStateFlow()
 
+    // Cache de thumbnails
+    private val _thumbnailCache = mutableStateMapOf<Long, Bitmap?>()
+    val thumbnailCache: Map<Long, Bitmap?> = _thumbnailCache
+
     private var exoPlayer: ExoPlayer? = null
     private var currentVideoList: List<Video> = emptyList()
     private var currentVideoIndex: Int = -1
@@ -49,18 +55,20 @@ class VideoPlayerViewModel @Inject constructor(
         observeFavorites()
     }
 
+    // Précharge la miniature si absente
+    fun loadThumbnailIfNeeded(video: Video, context: Context) {
+        if (_thumbnailCache.containsKey(video.id)) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val bitmap = extractThumbnail(context, video.uri)
+            _thumbnailCache[video.id] = bitmap
+        }
+    }
+
     private fun initializeExoPlayer() {
         exoPlayer = ExoPlayer.Builder(getApplication()).build().apply {
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
-                    when (state) {
-                        Player.STATE_READY -> {
-                            _uiState.update { it.copy(isPlaying = isPlaying) }
-                        }
-                        Player.STATE_ENDED -> {
-                            playNext()
-                        }
-                    }
+                    if (state == Player.STATE_ENDED) playNext()
                 }
 
                 override fun onIsPlayingChanged(playing: Boolean) {
@@ -89,7 +97,7 @@ class VideoPlayerViewModel @Inject constructor(
                     currentState.copy(
                         videoList = updatedList,
                         currentVideo = currentState.currentVideo?.let { current ->
-                            favorites.find { it.id == current.id }?.let { favorite ->
+                            favorites.find { it.id == current.id }?.let {
                                 current.copy(isFavorite = true)
                             } ?: current
                         }
@@ -105,7 +113,7 @@ class VideoPlayerViewModel @Inject constructor(
             try {
                 val video = repository.getVideoById(videoId)
                 getVideosUseCase().collect { videos ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             currentVideo = video,
                             videoList = videos,
@@ -114,7 +122,7 @@ class VideoPlayerViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         error = e.message ?: "Erreur lors du chargement de la vidéo"
@@ -135,22 +143,15 @@ class VideoPlayerViewModel @Inject constructor(
                 prepare()
                 play()
             }
-            _uiState.update { 
-                it.copy(
-                    currentVideo = video,
-                    isPlaying = true
-                )
+            _uiState.update {
+                it.copy(currentVideo = video, isPlaying = true)
             }
         }
     }
 
     fun togglePlayPause() {
         exoPlayer?.let { player ->
-            if (player.isPlaying) {
-                player.pause()
-            } else {
-                player.play()
-            }
+            if (player.isPlaying) player.pause() else player.play()
             _uiState.update { it.copy(isPlaying = player.isPlaying) }
         }
     }
@@ -175,9 +176,7 @@ class VideoPlayerViewModel @Inject constructor(
 
     fun toggleFavorite() {
         viewModelScope.launch {
-            _uiState.value.currentVideo?.let { video ->
-                toggleFavoriteUseCase(video)
-            }
+            _uiState.value.currentVideo?.let { toggleFavoriteUseCase(it) }
         }
     }
 
@@ -186,4 +185,4 @@ class VideoPlayerViewModel @Inject constructor(
         exoPlayer?.release()
         exoPlayer = null
     }
-} 
+}

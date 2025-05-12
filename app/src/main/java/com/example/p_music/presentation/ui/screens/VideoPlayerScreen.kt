@@ -2,24 +2,16 @@ package com.example.p_music.presentation.ui.screens
 
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,7 +21,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.ui.PlayerView
 import com.example.p_music.domain.model.Video
 import com.example.p_music.presentation.viewmodel.VideoPlayerViewModel
-import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,46 +68,30 @@ fun VideoPlayerScreen(
                     )
                 }
                 else -> {
-                    Column(
+                    Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            AndroidView(
-                                factory = { context ->
-                                    PlayerView(context).apply {
-                                        layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                                        useController = true
-                                        player = viewModel.getExoPlayer()
-                                        playerView = this
-                                    }
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
+                        AndroidView(
+                            factory = { context ->
+                                PlayerView(context).apply {
+                                    layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                                    useController = true
+                                    player = viewModel.getExoPlayer()
+                                    playerView = this
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
 
-                            if (!uiState.isFullscreen) {
-                                VideoControls(
-                                    video = uiState.currentVideo,
-                                    isPlaying = uiState.isPlaying,
-                                    onPlayPauseClick = { viewModel.togglePlayPause() },
-                                    onNextClick = { viewModel.playNext() },
-                                    onPreviousClick = { viewModel.playPrevious() },
-                                    onFavoriteClick = { viewModel.toggleFavorite() },
-                                    onFullscreenClick = { /* À faire */ }
-                                )
-                            }
-                        }
-
-                        if (!uiState.isFullscreen) {
-                            VideoList(
-                                videos = uiState.videoList,
-                                currentVideo = uiState.currentVideo,
-                                onVideoClick = { viewModel.playVideo(it) }
-                            )
-                        }
+                        VideoControls(
+                            video = uiState.currentVideo,
+                            isPlaying = uiState.isPlaying,
+                            onPlayPauseClick = { viewModel.togglePlayPause() },
+                            onNextClick = { viewModel.playNext() },
+                            onPreviousClick = { viewModel.playPrevious() },
+                            onFavoriteClick = { viewModel.toggleFavorite() },
+                            onFullscreenClick = { /* À faire */ }
+                        )
                     }
                 }
             }
@@ -223,105 +198,4 @@ private fun VideoControls(
             }
         }
     }
-}
-
-@Composable
-private fun VideoList(
-    videos: List<Video>,
-    currentVideo: Video?,
-    onVideoClick: (Video) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(240.dp)
-            .background(Color(0xFF1A1A1A))
-    ) {
-        Text(
-            text = "Vidéos",
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
-            modifier = Modifier.padding(16.dp)
-        )
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(videos) { video ->
-                VideoItem(
-                    video = video,
-                    isPlaying = video.id == currentVideo?.id,
-                    onItemClick = { onVideoClick(video) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun VideoItem(
-    video: Video,
-    isPlaying: Boolean,
-    onItemClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val bitmap by remember(video.id) {
-        mutableStateOf(extractThumbnail(context, video.uri))
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onItemClick)
-            .padding(vertical = 8.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.DarkGray)
-        ) {
-            bitmap?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = video.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } ?: Icon(
-                imageVector = Icons.Default.PlayCircleFilled,
-                contentDescription = "Video",
-                tint = Color.White,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 12.dp)
-        ) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.titleSmall,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = formatDuration(video.duration.toMillis()),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-private fun formatDuration(durationMs: Long): String {
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
-    return String.format("%02d:%02d", minutes, seconds)
 }

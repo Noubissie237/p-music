@@ -113,6 +113,7 @@ private fun VideosList(videos: List<Video>, onVideoClick: (Video) -> Unit) {
 @Composable
 private fun VideoRowItem(video: Video, onVideoClick: () -> Unit, viewModel: VideosViewModel = hiltViewModel(), modifier: Modifier = Modifier) {
     var showMenu by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Déclenche le chargement en arrière-plan dès que la vidéo est visible
@@ -148,13 +149,21 @@ private fun VideoRowItem(video: Video, onVideoClick: () -> Unit, viewModel: Vide
             Text(File(video.path).parentFile?.name ?: "Unknown", color = SpotifyLightGray.copy(alpha = 0.7f))
         }
 
-        IconButton(onClick = { showMenu = true }) {
+        IconButton(onClick = { showBottomSheet = true }) {
             Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = SpotifyLightGray)
         }
 
-        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, modifier = Modifier.background(SpotifyDarkGray)) {
-            DropdownMenuItem(text = { Text("Renommer", color = SpotifyWhite) }, onClick = { showMenu = false })
-            DropdownMenuItem(text = { Text("File info", color = SpotifyWhite) }, onClick = { showMenu = false })
+        if (showBottomSheet) {
+            VideoOptionsBottomSheet(
+                video = video,
+                onDismiss = { showBottomSheet = false },
+                onConvertToMp3 = { /* Implémentation à venir */ },
+                onToggleFavorite = { /* Implémentation à venir */ },
+                onRename = { /* Implémentation à venir */ },
+                onDelete = { /* Implémentation à venir */ },
+                onShare = { /* Implémentation à venir */ },
+                onShowInfo = { /* Implémentation à venir */ }
+            )
         }
     }
 }
@@ -225,7 +234,7 @@ fun formatFileSize(sizeInBytes: Long): String {
     }
 }
 
-private fun formatDuration(durationMs: Long): String {
+public fun formatDuration(durationMs: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
     val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
     return String.format("%02d:%02d", minutes, seconds)

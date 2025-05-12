@@ -1,14 +1,23 @@
 package com.example.p_music.presentation.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -22,85 +31,34 @@ import com.example.p_music.presentation.ui.components.MiniPlayer
 import com.example.p_music.presentation.viewmodel.AudioPlayerViewModel
 import com.example.p_music.presentation.viewmodel.MusicViewModel
 
+// Couleurs style Spotify pour la barre de navigation
+private val AppSpotifyGreen = Color(0xFF1DB954)
+private val AppSpotifyBlack = Color(0xFF121212)
+private val AppSpotifyLightGrey = Color(0xFFB3B3B3)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    val musicViewModel: MusicViewModel = hiltViewModel()
+//    val musicViewModel: MusicViewModel = hiltViewModel()
     val audioPlayerViewModel: AudioPlayerViewModel = hiltViewModel()
     val currentBackStackEntry = navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry.value?.destination
 
-    // Déterminer si nous sommes sur la page de lecture
+    // Détermine si nous sommes sur la page de lecture
     val isPlayerScreen = currentDestination?.route?.startsWith("player/") == true ||
-                     currentDestination?.route?.startsWith("video_player/") == true
+            currentDestination?.route?.startsWith("video_player/") == true
 
+    // État pour contrôler la visibilité du MiniPlayer
+    var showMiniPlayer by remember { mutableStateOf(true) }
 
     Scaffold(
-
         bottomBar = {
             if (!isPlayerScreen) {
-                NavigationBar {
-                    val navBackStackEntry = navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry.value?.destination
-
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.MusicNote, contentDescription = null) },
-                        label = { Text(stringResource(R.string.music)) },
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Music.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Music.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.VideoLibrary, contentDescription = null) },
-                        label = { Text(stringResource(R.string.videos)) },
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Videos.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Videos.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Favorite, contentDescription = null) },
-                        label = { Text(stringResource(R.string.favorites)) },
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Favorites.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Favorites.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.PlaylistPlay, contentDescription = null) },
-                        label = { Text(stringResource(R.string.playlists)) },
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Playlists.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Playlists.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                }
+                SpotifyStyleBottomNavigation(
+                    navController = navController,
+                    currentDestination = currentDestination
+                )
             }
         }
     ) { paddingValues ->
@@ -116,6 +74,8 @@ fun MainScreen() {
                 composable(Screen.Music.route) {
                     MusicScreen(
                         onAudioClick = { audio ->
+                            // Réaffiche le mini player si une nouvelle chanson est sélectionnée
+                            showMiniPlayer = true
                             navController.navigate("player/${audio.id}")
                         }
                     )
@@ -152,30 +112,168 @@ fun MainScreen() {
                 }
             }
 
-            // Mini player toujours visible sauf sur la page de lecture
-            if (!isPlayerScreen) {
+            // Mini player original avec bouton de fermeture
+            if (!isPlayerScreen && showMiniPlayer) {
                 val uiState by audioPlayerViewModel.uiState.collectAsState()
                 if (uiState.currentAudio != null) {
-                    MiniPlayer(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        title = uiState.currentAudio?.title ?: "",
-                        artist = uiState.currentAudio?.artist ?: "",
-                        isPlaying = uiState.isPlaying,
-                        progress = uiState.progress,
-                        elapsedTime = uiState.elapsedTime,
-                        remainingTime = uiState.remainingTime,
-                        onPlayPauseClick = { audioPlayerViewModel.togglePlayPause() },
-                        onNextClick = { audioPlayerViewModel.playNext() },
-                        onPreviousClick = { audioPlayerViewModel.playPrevious() },
-                        onPlayerClick = {
-                            uiState.currentAudio?.id?.let { audioId ->
-                                navController.navigate("player/$audioId")
-                            }
-                        },
-                        onProgressChange = { audioPlayerViewModel.seekTo(it) }
-                    )
+                    // On ajoute une Box pour pouvoir positionner le bouton de fermeture
+                    Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                        MiniPlayer(
+                            modifier = Modifier.fillMaxWidth(),
+                            title = uiState.currentAudio?.title ?: "",
+                            artist = uiState.currentAudio?.artist ?: "",
+                            isPlaying = uiState.isPlaying,
+                            progress = uiState.progress,
+                            elapsedTime = uiState.elapsedTime,
+                            remainingTime = uiState.remainingTime,
+                            onPlayPauseClick = { audioPlayerViewModel.togglePlayPause() },
+                            onNextClick = { audioPlayerViewModel.playNext() },
+                            onPreviousClick = { audioPlayerViewModel.playPrevious() },
+                            onPlayerClick = {
+                                uiState.currentAudio?.id?.let { audioId ->
+                                    navController.navigate("player/$audioId")
+                                }
+                            },
+                            onProgressChange = { audioPlayerViewModel.seekTo(it) }
+                        )
+
+                        // Bouton de fermeture
+                        IconButton(
+                            onClick = {
+                                showMiniPlayer = false
+                                // Option: vous pouvez aussi arrêter la lecture si désiré
+                                // audioPlayerViewModel.stopPlayback()
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 4.dp, end = 4.dp)
+                                .size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Fermer",
+                                tint = Color.White
+                            )
+                        }
+                    }
                 }
             }
         }
     }
-} 
+}
+
+@Composable
+fun SpotifyStyleBottomNavigation(
+    navController: androidx.navigation.NavController,
+    currentDestination: androidx.navigation.NavDestination?
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppSpotifyBlack,
+        tonalElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BottomNavItem(
+                icon = Icons.Rounded.Home,
+                label = stringResource(R.string.music),
+                isSelected = currentDestination?.hierarchy?.any { it.route == Screen.Music.route } == true,
+                onClick = {
+                    navController.navigate(Screen.Music.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+
+            BottomNavItem(
+                icon = Icons.Rounded.VideoLibrary,
+                label = stringResource(R.string.videos),
+                isSelected = currentDestination?.hierarchy?.any { it.route == Screen.Videos.route } == true,
+                onClick = {
+                    navController.navigate(Screen.Videos.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+
+            BottomNavItem(
+                icon = Icons.Rounded.Favorite,
+                label = stringResource(R.string.favorites),
+                isSelected = currentDestination?.hierarchy?.any { it.route == Screen.Favorites.route } == true,
+                onClick = {
+                    navController.navigate(Screen.Favorites.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+
+            BottomNavItem(
+                icon = Icons.Rounded.PlaylistPlay,
+                label = stringResource(R.string.playlists),
+                isSelected = currentDestination?.hierarchy?.any { it.route == Screen.Playlists.route } == true,
+                onClick = {
+                    navController.navigate(Screen.Playlists.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun BottomNavItem(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .padding(8.dp)
+            .wrapContentSize()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isSelected) AppSpotifyGreen else AppSpotifyLightGrey,
+            modifier = Modifier.size(26.dp)
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = label,
+            color = if (isSelected) AppSpotifyGreen else AppSpotifyLightGrey,
+            fontSize = 11.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            textAlign = TextAlign.Center
+        )
+    }
+}

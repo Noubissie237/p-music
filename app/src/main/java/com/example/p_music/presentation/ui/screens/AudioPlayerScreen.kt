@@ -181,46 +181,52 @@ fun AudioPlayerScreen(
             )
             
             // Égaliseur animé
-            if (uiState.isPlaying) {
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .padding(vertical = 16.dp)
-                ) {
-                    val width = size.width
-                    val height = size.height
-                    val circleCount = 5
-                    val spacing = width / (circleCount + 1)
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .padding(vertical = 16.dp)
+            ) {
+                val width = size.width
+                val height = size.height
+                val circleCount = 5
+                val spacing = width / (circleCount + 1)
+                
+                for (i in 0 until circleCount) {
+                    val centerX = spacing * (i + 1)
+                    val centerY = height / 2
+                    val offset = i * 0.5f
                     
-                    for (i in 0 until circleCount) {
-                        val centerX = spacing * (i + 1)
-                        val centerY = height / 2
-                        val offset = i * 0.5f
-                        
-                        // Cercle extérieur
-                        val outerRadius = height * 0.4f * (0.7f + 0.3f * sin(phase + offset))
-                        drawCircle(
-                            color = SpotifyColors.Green.copy(alpha = 0.2f),
-                            radius = outerRadius,
-                            center = Offset(centerX, centerY)
-                        )
-                        
-                        // Cercle intérieur
-                        val innerRadius = height * 0.2f * (0.5f + 0.5f * sin(phase + offset + 0.5f))
-                        drawCircle(
-                            color = SpotifyColors.Green.copy(alpha = 0.8f),
-                            radius = innerRadius,
-                            center = Offset(centerX, centerY)
-                        )
-                        
-                        // Point central
-                        drawCircle(
-                            color = Color.White,
-                            radius = 4.dp.toPx(),
-                            center = Offset(centerX, centerY)
-                        )
+                    // Cercle extérieur
+                    val outerRadius = if (uiState.isPlaying) {
+                        height * 0.4f * (0.7f + 0.3f * sin(phase + offset))
+                    } else {
+                        height * 0.4f * 0.7f
                     }
+                    drawCircle(
+                        color = SpotifyColors.Green.copy(alpha = 0.2f),
+                        radius = outerRadius,
+                        center = Offset(centerX, centerY)
+                    )
+                    
+                    // Cercle intérieur
+                    val innerRadius = if (uiState.isPlaying) {
+                        height * 0.2f * (0.5f + 0.5f * sin(phase + offset + 0.5f))
+                    } else {
+                        height * 0.2f * 0.5f
+                    }
+                    drawCircle(
+                        color = SpotifyColors.Green.copy(alpha = 0.8f),
+                        radius = innerRadius,
+                        center = Offset(centerX, centerY)
+                    )
+                    
+                    // Point central
+                    drawCircle(
+                        color = Color.White,
+                        radius = 4.dp.toPx(),
+                        center = Offset(centerX, centerY)
+                    )
                 }
             }
             

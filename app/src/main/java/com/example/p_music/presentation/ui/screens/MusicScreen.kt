@@ -219,7 +219,8 @@ fun MusicScreen(
                                         if (uiState.currentAudio?.id != audio.id) {
                                             onAudioClick(audio)
                                         }
-                                    }
+                                    },
+                                    audio = audio
                                 )
                             }
                         }
@@ -263,11 +264,14 @@ fun SpotifyCardEnhanced(
     imageUrl: String?,
     index: Int,
     isPlaying: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    audio: Audio
 ) {
     val primaryColor = SpotifyColors.Green
     val textColor = Color.White
     val secondaryTextColor = Color.LightGray
+
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -343,14 +347,14 @@ fun SpotifyCardEnhanced(
                 }
 
                 IconButton(
-                    onClick = { /* Menu options */ },
+                    onClick = { showBottomSheet = true },
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.MoreVert,
                         contentDescription = "Plus d'options",
                         tint = secondaryTextColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(25.dp)
                     )
                 }
             }
@@ -366,5 +370,21 @@ fun SpotifyCardEnhanced(
                 thickness = 0.5.dp
             )
         }
+    }
+    if (showBottomSheet) {
+        MusicOptionsBottomSheet(
+            audio = audio,
+            onDismiss = { showBottomSheet = false },
+            // Vous pourrez implémenter ces fonctions plus tard
+            onPlayNow = { /* votre logique ici */ },
+            onAddToQueue = { /* votre logique ici */ },
+            onSetAsRingtone = { /* votre logique ici */ },
+            onAddToPlaylist = { /* votre logique ici */ },
+            onRename = { /* votre logique ici */ },
+            onToggleFavorite = { /* votre logique ici */ },
+            onDelete = { /* votre logique ici */ },
+            onShare = { /* votre logique ici */ },
+            onShowInfo = { /* votre logique ici */ }
+        )
     }
 }

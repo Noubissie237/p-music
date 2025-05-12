@@ -35,9 +35,17 @@ fun VideoPlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var playerView by remember { mutableStateOf<PlayerView?>(null) }
 
     LaunchedEffect(videoId) {
         viewModel.loadVideo(videoId.toLong())
+    }
+
+    // Mettre à jour le PlayerView quand la vidéo change
+    LaunchedEffect(uiState.currentVideo) {
+        uiState.currentVideo?.let { video ->
+            viewModel.playVideo(video)
+        }
     }
 
     Scaffold(
@@ -91,6 +99,8 @@ fun VideoPlayerScreen(
                                     PlayerView(context).apply {
                                         layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                                         useController = true
+                                        player = viewModel.getExoPlayer()
+                                        playerView = this
                                     }
                                 },
                                 modifier = Modifier.fillMaxSize()

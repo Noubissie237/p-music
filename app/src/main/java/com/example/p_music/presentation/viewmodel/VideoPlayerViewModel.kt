@@ -124,6 +124,8 @@ class VideoPlayerViewModel @Inject constructor(
         }
     }
 
+    fun getExoPlayer(): ExoPlayer? = exoPlayer
+
     fun playVideo(video: Video) {
         val index = currentVideoList.indexOf(video)
         if (index != -1) {

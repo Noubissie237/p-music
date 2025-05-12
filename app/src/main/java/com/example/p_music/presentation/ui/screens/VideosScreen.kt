@@ -38,7 +38,8 @@ private val SpotifyWhite = Color(0xFFFFFFFF)
 
 @Composable
 fun VideosScreen(
-    viewModel: VideosViewModel = hiltViewModel()
+    viewModel: VideosViewModel = hiltViewModel(),
+    onVideoClick: (Video) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -103,10 +104,10 @@ fun VideosScreen(
                 }
             }
             uiState.videos.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
                     Text(
                         text = "Aucune vidéo disponible",
                         color = SpotifyLightGray,
@@ -120,7 +121,10 @@ fun VideosScreen(
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(uiState.videos) { video ->
-                        VideoRowItem(video = video)
+                        VideoRowItem(
+                            video = video,
+                            onVideoClick = { onVideoClick(video) }
+                        )
                     }
                 }
             }
@@ -131,6 +135,7 @@ fun VideosScreen(
 @Composable
 private fun VideoRowItem(
     video: Video,
+    onVideoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -146,7 +151,7 @@ private fun VideoRowItem(
             .height(120.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(SpotifyDarkGray)
-            .clickable { /* Action au clic */ },
+            .clickable(onClick = onVideoClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Première colonne - Miniature vidéo

@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -25,55 +26,101 @@ import com.example.p_music.presentation.viewmodel.VideoPlayerViewModel
 import androidx.compose.foundation.shape.CircleShape
 import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoPlayerScreen(
+    onNavigateBack: () -> Unit,
+    videoId: String,
     viewModel: VideoPlayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Lecteur vidéo
+    LaunchedEffect(videoId) {
+        viewModel.loadVideo(videoId.toLong())
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Lecture vidéo") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+                .fillMaxSize()
+                .background(Color.Black)
+                .padding(paddingValues)
         ) {
-            AndroidView(
-                factory = { context ->
-                    PlayerView(context).apply {
-                        layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                        useController = false
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                uiState.error != null -> {
+                    val errorMessage = uiState.error
+                    Text(
+                        text = errorMessage!!,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp)
+                    )
+                }
+                else -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        // Lecteur vidéo
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            AndroidView(
+                                factory = { context ->
+                                    PlayerView(context).apply {
+                                        layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                                        useController = true
+                                    }
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Contrôles de lecture
+                            if (!uiState.isFullscreen) {
+                                VideoControls(
+                                    video = uiState.currentVideo,
+                                    isPlaying = uiState.isPlaying,
+                                    onPlayPauseClick = { viewModel.togglePlayPause() },
+                                    onNextClick = { viewModel.playNext() },
+                                    onPreviousClick = { viewModel.playPrevious() },
+                                    onFavoriteClick = { viewModel.toggleFavorite() },
+                                    onFullscreenClick = { /* TODO: Implémenter le mode plein écran */ }
+                                )
+                            }
+                        }
+
+                        // Liste des vidéos
+                        if (!uiState.isFullscreen) {
+                            VideoList(
+                                videos = uiState.videoList,
+                                currentVideo = uiState.currentVideo,
+                                onVideoClick = { viewModel.playVideo(it) }
+                            )
+                        }
                     }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Contrôles de lecture
-            if (!uiState.isFullscreen) {
-                VideoControls(
-                    video = uiState.currentVideo,
-                    isPlaying = uiState.isPlaying,
-                    onPlayPauseClick = { viewModel.togglePlayPause() },
-                    onNextClick = { viewModel.playNext() },
-                    onPreviousClick = { viewModel.playPrevious() },
-                    onFavoriteClick = { viewModel.toggleFavorite() },
-                    onFullscreenClick = { /* TODO: Implémenter le mode plein écran */ }
-                )
+                }
             }
-        }
-
-        // Liste des vidéos
-        if (!uiState.isFullscreen) {
-            VideoList(
-                videos = uiState.videoList,
-                currentVideo = uiState.currentVideo,
-                onVideoClick = { viewModel.playVideo(it) }
-            )
         }
     }
 }

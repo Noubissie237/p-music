@@ -19,6 +19,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class VideoPlayerUiState(
+    val currentVideo: Video? = null,
+    val videoList: List<Video> = emptyList(),
+    val isPlaying: Boolean = false,
+    val isFullscreen: Boolean = false,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
 @HiltViewModel
 class VideoPlayerViewModel @Inject constructor(
     application: Application,
@@ -90,6 +99,31 @@ class VideoPlayerViewModel @Inject constructor(
         }
     }
 
+    fun loadVideo(videoId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val video = repository.getVideoById(videoId)
+                getVideosUseCase().collect { videos ->
+                    _uiState.update { 
+                        it.copy(
+                            currentVideo = video,
+                            videoList = videos,
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Erreur lors du chargement de la vidéo"
+                    )
+                }
+            }
+        }
+    }
+
     fun playVideo(video: Video) {
         val index = currentVideoList.indexOf(video)
         if (index != -1) {
@@ -150,13 +184,4 @@ class VideoPlayerViewModel @Inject constructor(
         exoPlayer?.release()
         exoPlayer = null
     }
-}
-
-data class VideoPlayerUiState(
-    val videoList: List<Video> = emptyList(),
-    val currentVideo: Video? = null,
-    val isPlaying: Boolean = false,
-    val currentPosition: Long = 0L,
-    val duration: Long = 0L,
-    val isFullscreen: Boolean = false
-) 
+} 

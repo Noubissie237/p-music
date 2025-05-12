@@ -119,7 +119,11 @@ fun MainScreen() {
                     )
                 }
                 composable(Screen.Videos.route) {
-                    VideosScreen()
+                    VideosScreen(
+                        onVideoClick = { video ->
+                            navController.navigate("video_player/${video.id}")
+                        }
+                    )
                 }
                 composable(Screen.Favorites.route) {
                     FavoritesScreen()
@@ -135,6 +139,13 @@ fun MainScreen() {
                     AudioPlayerScreen(
                         onNavigateBack = { navController.popBackStack() },
                         audioId = audioId
+                    )
+                }
+                composable("video_player/{videoId}") { backStackEntry ->
+                    val videoId = backStackEntry.arguments?.getString("videoId") ?: return@composable
+                    VideoPlayerScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        videoId = videoId
                     )
                 }
             }

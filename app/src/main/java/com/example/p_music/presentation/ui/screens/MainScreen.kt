@@ -136,25 +136,6 @@ fun MainScreen() {
                             },
                             onProgressChange = { audioPlayerViewModel.seekTo(it) }
                         )
-
-                        // Bouton de fermeture
-                        IconButton(
-                            onClick = {
-                                showMiniPlayer = false
-                                // Option: vous pouvez aussi arrêter la lecture si désiré
-                                // audioPlayerViewModel.stopPlayback()
-                            },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 4.dp, end = 4.dp)
-                                .size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Fermer",
-                                tint = Color.White
-                            )
-                        }
                     }
                 }
             }

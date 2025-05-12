@@ -2,28 +2,33 @@ package com.example.p_music.presentation.ui.screens
 
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.p_music.domain.model.Video
 import com.example.p_music.presentation.viewmodel.VideoPlayerViewModel
-import androidx.compose.foundation.shape.CircleShape
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,25 +46,13 @@ fun VideoPlayerScreen(
         viewModel.loadVideo(videoId.toLong())
     }
 
-    // Mettre à jour le PlayerView quand la vidéo change
     LaunchedEffect(uiState.currentVideo) {
         uiState.currentVideo?.let { video ->
             viewModel.playVideo(video)
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Lecture vidéo") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -74,9 +67,8 @@ fun VideoPlayerScreen(
                     )
                 }
                 uiState.error != null -> {
-                    val errorMessage = uiState.error
                     Text(
-                        text = errorMessage!!,
+                        text = uiState.error!!,
                         color = Color.White,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -88,7 +80,6 @@ fun VideoPlayerScreen(
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Lecteur vidéo
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -106,7 +97,6 @@ fun VideoPlayerScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
 
-                            // Contrôles de lecture
                             if (!uiState.isFullscreen) {
                                 VideoControls(
                                     video = uiState.currentVideo,
@@ -115,12 +105,11 @@ fun VideoPlayerScreen(
                                     onNextClick = { viewModel.playNext() },
                                     onPreviousClick = { viewModel.playPrevious() },
                                     onFavoriteClick = { viewModel.toggleFavorite() },
-                                    onFullscreenClick = { /* TODO: Implémenter le mode plein écran */ }
+                                    onFullscreenClick = { /* À faire */ }
                                 )
                             }
                         }
 
-                        // Liste des vidéos
                         if (!uiState.isFullscreen) {
                             VideoList(
                                 videos = uiState.videoList,
@@ -151,7 +140,6 @@ private fun VideoControls(
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Barre supérieure
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -174,7 +162,6 @@ private fun VideoControls(
             }
         }
 
-        // Contrôles centraux
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -213,7 +200,6 @@ private fun VideoControls(
             }
         }
 
-        // Informations de la vidéo
         video?.let {
             Column(
                 modifier = Modifier
@@ -248,7 +234,7 @@ private fun VideoList(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(240.dp)
             .background(Color(0xFF1A1A1A))
     ) {
         Text(
@@ -258,12 +244,18 @@ private fun VideoList(
             modifier = Modifier.padding(16.dp)
         )
 
-        videos.forEach { video ->
-            VideoItem(
-                video = video,
-                isPlaying = video.id == currentVideo?.id,
-                onItemClick = { onVideoClick(video) }
-            )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(videos) { video ->
+                VideoItem(
+                    video = video,
+                    isPlaying = video.id == currentVideo?.id,
+                    onItemClick = { onVideoClick(video) }
+                )
+            }
         }
     }
 }
@@ -274,6 +266,11 @@ private fun VideoItem(
     isPlaying: Boolean,
     onItemClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val bitmap by remember(video.id) {
+        mutableStateOf(extractThumbnail(context, video.uri))
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -281,16 +278,27 @@ private fun VideoItem(
             .padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Miniature
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .background(Color.Gray)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.DarkGray)
         ) {
-            // TODO: Afficher la miniature de la vidéo
+            bitmap?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = video.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } ?: Icon(
+                imageVector = Icons.Default.PlayCircleFilled,
+                contentDescription = "Video",
+                tint = Color.White,
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
 
-        // Informations
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -316,4 +324,4 @@ private fun formatDuration(durationMs: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
     val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
     return String.format("%02d:%02d", minutes, seconds)
-} 
+}

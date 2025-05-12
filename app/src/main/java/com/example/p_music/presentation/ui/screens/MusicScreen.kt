@@ -6,13 +6,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +45,7 @@ fun MusicScreen(
     viewModel: MusicViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     // Définir des couleurs Spotify
     val backgroundColor = Color(0xFF121212)
     val surfaceColor = Color(0xFF1A1A1A)
@@ -80,7 +83,7 @@ fun MusicScreen(
                         color = textColor
                     )
                 )
-                
+
                 Row {
                     IconButton(onClick = { /* TODO: Open settings */ }) {
                         Icon(
@@ -101,7 +104,7 @@ fun MusicScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            
+
             // Catégories avec sélection
             LazyRow(
                 modifier = Modifier
@@ -114,12 +117,12 @@ fun MusicScreen(
                     FilterChip(
                         selected = category == selectedCategory,
                         onClick = { selectedCategory = category },
-                        label = { 
+                        label = {
                             Text(
                                 text = category,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
-                            ) 
+                            )
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = Color.DarkGray.copy(alpha = 0.5f),
@@ -131,12 +134,12 @@ fun MusicScreen(
                     )
                 }
             }
-            
+
             Divider(
                 color = Color.DarkGray.copy(alpha = 0.3f),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            
+
             // Contenu principal - Liste de musique
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -183,7 +186,7 @@ fun MusicScreen(
                                 color = secondaryTextColor,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
-                            
+
                             if (uiState.searchQuery.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
@@ -199,16 +202,17 @@ fun MusicScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
-                                start = 16.dp, end = 16.dp, top = 8.dp, 
+                                start = 16.dp, end = 16.dp, top = 8.dp,
                                 bottom = if (uiState.currentAudio != null) 80.dp else 16.dp
                             ),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp) // Espacement réduit pour un look plus épuré
                         ) {
-                            items(uiState.audioList) { audio ->
+                            itemsIndexed(uiState.audioList) { index, audio ->
                                 SpotifyCardEnhanced(
                                     title = audio.title,
                                     subtitle = audio.artist,
                                     imageUrl = audio.coverUri?.toString(),
+                                    index = index,
                                     isPlaying = uiState.isPlaying && uiState.currentAudio?.id == audio.id,
                                     onClick = {
                                         viewModel.playAudio(audio)
@@ -243,9 +247,8 @@ fun MusicScreen(
                     onNextClick = { viewModel.playNext() },
                     onPreviousClick = { viewModel.playPrevious() },
                     onPlayerClick = { onAudioClick(audio) },
-                    onProgressChange = { viewModel.seekTo(it) }, // Paramètre manquant ajouté
+                    onProgressChange = { viewModel.seekTo(it) },
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                 )
             }
@@ -258,83 +261,41 @@ fun SpotifyCardEnhanced(
     title: String,
     subtitle: String,
     imageUrl: String?,
+    index: Int,
     isPlaying: Boolean = false,
     onClick: () -> Unit
 ) {
     val primaryColor = SpotifyColors.Green
     val textColor = Color.White
     val secondaryTextColor = Color.LightGray
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(70.dp),
         onClick = onClick,
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF282828)
+            containerColor = Color.Transparent // Fond transparent pour un look plus épuré
         ),
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Image d'artwork
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color.DarkGray),
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUrl != null) {
-                    // AsyncImage nécessaire
-                    // AsyncImage(
-                    //    model = imageUrl,
-                    //    contentDescription = title,
-                    //    contentScale = ContentScale.Crop,
-                    //    modifier = Modifier.fillMaxSize()
-                    // )
-                    
-                    // Placeholder pour le moment
-                    Icon(
-                        imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = null,
-                        tint = Color.LightGray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = null,
-                        tint = Color.LightGray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                // Indicateur de lecture
-                if (isPlaying) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(Color(0x80000000))
-                            .padding(4.dp),
-                        contentAlignment = Alignment.BottomEnd
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PlayCircleFilled,
-                            contentDescription = "En lecture",
-                            tint = primaryColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
+            // Numéro de la piste
+            Text(
+                text = String.format("%02d", index + 1),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = 14.sp
+                ),
+                color = if (isPlaying) primaryColor else secondaryTextColor,
+                modifier = Modifier.width(36.dp)
+            )
+
             // Texte
             Column(
                 modifier = Modifier
@@ -344,34 +305,66 @@ fun SpotifyCardEnhanced(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 16.sp,
+                        letterSpacing = 0.sp
                     ),
                     color = if (isPlaying) primaryColor else textColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
+                Spacer(modifier = Modifier.height(2.dp))
+
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
+                        letterSpacing = 0.sp
+                    ),
                     color = secondaryTextColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
-            // Bouton de menu
-            IconButton(
-                onClick = { /* Menu options */ },
-                modifier = Modifier.size(32.dp)
+
+            // Icônes à droite - plus subtiles
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = "Plus d'options",
-                    tint = secondaryTextColor,
-                    modifier = Modifier.size(16.dp)
-                )
+                if (isPlaying) {
+                    Icon(
+                        imageVector = Icons.Filled.Equalizer,
+                        contentDescription = "En lecture",
+                        tint = primaryColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+
+                IconButton(
+                    onClick = { /* Menu options */ },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreVert,
+                        contentDescription = "Plus d'options",
+                        tint = secondaryTextColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
+        }
+
+        // Ligne de séparation subtile
+        if (!isPlaying) {
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 56.dp, end = 8.dp),
+                color = Color.DarkGray.copy(alpha = 0.3f),
+                thickness = 0.5.dp
+            )
         }
     }
 }

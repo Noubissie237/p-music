@@ -2,6 +2,13 @@ package com.example.p_music.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+//val Purple80 = Color(0xFF1DB954)  // Vert Spotify principal
+//val PurpleGrey80 = Color(0xFF1ED760)  // Vert Spotify plus clair
+//val Pink80 = Color(0xFF1AA34A)  // Vert Spotify plus foncé
+//
+//val Purple40 = Color(0xFF1DB954)  // Vert Spotify principal pour le thème sombre
+//val PurpleGrey40 = Color(0xFF535353)  // Gris foncé Spotify
+//val Pink40 = Color(0xFF121212)  // Noir/fond très foncé Spotify
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)

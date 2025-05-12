@@ -111,8 +111,17 @@ private fun VideosList(videos: List<Video>, onVideoClick: (Video) -> Unit) {
 }
 
 @Composable
-private fun VideoRowItem(video: Video, onVideoClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun VideoRowItem(video: Video, onVideoClick: () -> Unit, viewModel: VideosViewModel = hiltViewModel(), modifier: Modifier = Modifier) {
     var showMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Déclenche le chargement en arrière-plan dès que la vidéo est visible
+    LaunchedEffect(video.id) {
+        viewModel.loadThumbnail(video, context)
+    }
+
+    // Observe le cache du ViewModel
+    val bitmap = viewModel.thumbnailCache[video.id]
 
     Row(
         modifier = modifier
@@ -123,8 +132,9 @@ private fun VideoRowItem(video: Video, onVideoClick: () -> Unit, modifier: Modif
             .clickable(onClick = onVideoClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        VideoThumbnailSmart(video.uri, video.title, video.duration.toMillis())
+        VideoThumbnailSmart(bitmap, video.title, video.duration.toMillis())
 
+        // Reste inchangé
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -149,14 +159,9 @@ private fun VideoRowItem(video: Video, onVideoClick: () -> Unit, modifier: Modif
     }
 }
 
+
 @Composable
-private fun VideoThumbnailSmart(uri: Uri, title: String?, durationMs: Long) {
-    val context = LocalContext.current
-
-    val bitmap by remember(uri) {
-        mutableStateOf(extractThumbnail(context, uri))
-    }
-
+private fun VideoThumbnailSmart(bitmap: Bitmap?, title: String?, durationMs: Long) {
     Box(
         modifier = Modifier
             .width(180.dp)
@@ -164,7 +169,7 @@ private fun VideoThumbnailSmart(uri: Uri, title: String?, durationMs: Long) {
     ) {
         if (bitmap != null) {
             Image(
-                bitmap = bitmap!!.asImageBitmap(),
+                bitmap = bitmap.asImageBitmap(),
                 contentDescription = title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -187,6 +192,7 @@ private fun VideoThumbnailSmart(uri: Uri, title: String?, durationMs: Long) {
         }
     }
 }
+
 
 @Composable
 private fun DefaultThumbnailFallback() {

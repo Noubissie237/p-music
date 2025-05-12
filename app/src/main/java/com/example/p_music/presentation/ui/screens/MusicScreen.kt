@@ -54,7 +54,7 @@ fun MusicScreen(
     val secondaryTextColor = Color.LightGray
 
     // Catégories de bibliothèque simulées pour une interface plus riche
-    val categories = listOf("Récemment joué", "Favoris", "Albums", "Artistes", "Playlists")
+    val categories = listOf("Playlists", "Favoris", "Albums")
     var selectedCategory by remember { mutableStateOf(categories.first()) }
 
     Box(

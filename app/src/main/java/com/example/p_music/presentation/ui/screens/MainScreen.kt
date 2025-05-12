@@ -32,7 +32,9 @@ fun MainScreen() {
     val currentDestination = currentBackStackEntry.value?.destination
 
     // Déterminer si nous sommes sur la page de lecture
-    val isPlayerScreen = currentDestination?.route?.startsWith("player/") == true
+    val isPlayerScreen = currentDestination?.route?.startsWith("player/") == true ||
+                     currentDestination?.route?.startsWith("video_player/") == true
+
 
     Scaffold(
 

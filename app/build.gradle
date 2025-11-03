@@ -81,6 +81,9 @@ dependencies {
     implementation 'androidx.media3:media3-ui:1.2.1'
     implementation 'androidx.media3:media3-session:1.2.1'
 
+    // Media pour les notifications
+    implementation 'androidx.media:media:1.7.0'
+
     // Coil pour le chargement des images
     implementation "io.coil-kt:coil-compose:2.5.0"
 

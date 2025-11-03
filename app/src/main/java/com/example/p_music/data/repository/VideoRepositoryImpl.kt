@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import com.example.p_music.data.local.dao.FavoriteVideoDao
 import com.example.p_music.data.local.entity.FavoriteVideoEntity
 import com.example.p_music.domain.model.Video
@@ -26,6 +27,8 @@ class VideoRepositoryImpl @Inject constructor(
         val videos = mutableListOf<Video>()
         val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
 
+        Log.d("VideoRepository", "Starting to query video files from: $collection")
+
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.TITLE,
@@ -40,13 +43,15 @@ class VideoRepositoryImpl @Inject constructor(
         val selectionArgs = arrayOf("video/%")
 
         withContext(Dispatchers.IO) {
-            context.contentResolver.query(
-                collection,
-                projection,
-                selection,
-                selectionArgs,
-                "${MediaStore.Video.Media.DATE_ADDED} DESC"
-            )?.use { cursor ->
+            try {
+                context.contentResolver.query(
+                    collection,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    "${MediaStore.Video.Media.DATE_ADDED} DESC"
+                )?.use { cursor ->
+                    Log.d("VideoRepository", "Query successful. Cursor count: ${cursor.count}")
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
                 val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.TITLE)
                 val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
@@ -88,6 +93,12 @@ class VideoRepositoryImpl @Inject constructor(
                     )
                     videos.add(video)
                 }
+                    Log.d("VideoRepository", "Successfully loaded ${videos.size} video files")
+                } ?: run {
+                    Log.e("VideoRepository", "Query returned null cursor")
+                }
+            } catch (e: Exception) {
+                Log.e("VideoRepository", "Error querying video files", e)
             }
         }
         emit(videos)

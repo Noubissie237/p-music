@@ -1,5 +1,14 @@
 package com.example.p_music.presentation.ui.screens
 
+import android.app.Activity
+import android.content.Intent
+import android.content.IntentSender
+import android.os.Build
+import android.provider.MediaStore
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,11 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.p_music.R
 import com.example.p_music.domain.model.Audio
@@ -37,6 +48,7 @@ import com.example.p_music.presentation.ui.components.SpotifyCard
 import com.example.p_music.presentation.ui.components.SpotifySearchBar
 import com.example.p_music.presentation.ui.theme.SpotifyColors
 import com.example.p_music.presentation.viewmodel.MusicViewModel
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +57,25 @@ fun MusicScreen(
     viewModel: MusicViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    
+    // États pour les dialogues
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
+    var audioToDelete by remember { mutableStateOf<Audio?>(null) }
+    
+    // Launcher pour la permission de suppression (Android 10+)
+    val deletePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            Toast.makeText(context, "Fichier supprimé avec succès", Toast.LENGTH_SHORT).show()
+            viewModel.loadAudios() // Recharger la liste
+        } else {
+            Toast.makeText(context, "Suppression annulée", Toast.LENGTH_SHORT).show()
+        }
+        audioToDelete = null
+    }
 
     // Définir des couleurs Spotify
     val backgroundColor = Color(0xFF121212)
@@ -220,7 +251,18 @@ fun MusicScreen(
                                             onAudioClick(audio)
                                         }
                                     },
-                                    audio = audio
+                                    audio = audio,
+                                    onDelete = { audio ->
+                                        audioToDelete = audio
+                                        showDeleteDialog = true
+                                    },
+                                    onShare = { audio ->
+                                        shareAudio(context, audio)
+                                    },
+                                    onShowInfo = { audio ->
+                                        audioToDelete = audio
+                                        showInfoDialog = true
+                                    }
                                 )
                             }
                         }
@@ -255,6 +297,32 @@ fun MusicScreen(
             }
         }
     }
+    
+    // Dialogue de confirmation de suppression
+    if (showDeleteDialog && audioToDelete != null) {
+        DeleteConfirmationDialog(
+            audio = audioToDelete!!,
+            onConfirm = {
+                deleteAudio(context, audioToDelete!!, deletePermissionLauncher)
+                showDeleteDialog = false
+            },
+            onDismiss = {
+                showDeleteDialog = false
+                audioToDelete = null
+            }
+        )
+    }
+    
+    // Dialogue d'informations
+    if (showInfoDialog && audioToDelete != null) {
+        AudioInfoDialog(
+            audio = audioToDelete!!,
+            onDismiss = {
+                showInfoDialog = false
+                audioToDelete = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -265,11 +333,15 @@ fun SpotifyCardEnhanced(
     index: Int,
     isPlaying: Boolean = false,
     onClick: () -> Unit,
-    audio: Audio
+    audio: Audio,
+    onDelete: (Audio) -> Unit,
+    onShare: (Audio) -> Unit,
+    onShowInfo: (Audio) -> Unit
 ) {
     val primaryColor = SpotifyColors.Green
     val textColor = Color.White
     val secondaryTextColor = Color.LightGray
+    val context = LocalContext.current
 
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -375,16 +447,210 @@ fun SpotifyCardEnhanced(
         MusicOptionsBottomSheet(
             audio = audio,
             onDismiss = { showBottomSheet = false },
-            // Vous pourrez implémenter ces fonctions plus tard
-            onPlayNow = { /* votre logique ici */ },
-            onAddToQueue = { /* votre logique ici */ },
-            onSetAsRingtone = { /* votre logique ici */ },
-            onAddToPlaylist = { /* votre logique ici */ },
-            onRename = { /* votre logique ici */ },
-            onToggleFavorite = { /* votre logique ici */ },
-            onDelete = { /* votre logique ici */ },
-            onShare = { /* votre logique ici */ },
-            onShowInfo = { /* votre logique ici */ }
+            onPlayNow = onClick,
+            onAddToQueue = { /* TODO: Implémenter */ },
+            onSetAsRingtone = { /* TODO: Implémenter */ },
+            onAddToPlaylist = { /* TODO: Implémenter */ },
+            onRename = { /* TODO: Implémenter */ },
+            onToggleFavorite = { /* TODO: Implémenter */ },
+            onDelete = { onDelete(audio) },
+            onShare = { onShare(audio) },
+            onShowInfo = { onShowInfo(audio) }
+        )
+    }
+}
+
+// Fonction pour partager un fichier audio
+private fun shareAudio(context: android.content.Context, audio: Audio) {
+    try {
+        val file = File(audio.path)
+        if (file.exists()) {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "audio/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, audio.title)
+                putExtra(Intent.EXTRA_TEXT, "Écoute ${audio.title} par ${audio.artist}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            
+            context.startActivity(Intent.createChooser(shareIntent, "Partager via"))
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+// Fonction pour supprimer un fichier audio
+private fun deleteAudio(
+    context: android.content.Context,
+    audio: Audio,
+    permissionLauncher: androidx.activity.result.ActivityResultLauncher<IntentSenderRequest>
+) {
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ : Utiliser createDeleteRequest
+            val uris = listOf(audio.uri)
+            val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
+            
+            val intentSenderRequest = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+            permissionLauncher.launch(intentSenderRequest)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10 : Utiliser RecoverableSecurityException
+            try {
+                context.contentResolver.delete(audio.uri, null, null)
+                Toast.makeText(context, "Fichier supprimé avec succès", Toast.LENGTH_SHORT).show()
+            } catch (securityException: SecurityException) {
+                val recoverableSecurityException = securityException as? 
+                    android.app.RecoverableSecurityException
+                    ?: throw securityException
+                
+                val intentSenderRequest = IntentSenderRequest.Builder(
+                    recoverableSecurityException.userAction.actionIntent.intentSender
+                ).build()
+                permissionLauncher.launch(intentSenderRequest)
+            }
+        } else {
+            // Android 9 et moins : Suppression directe
+            val deleted = context.contentResolver.delete(audio.uri, null, null)
+            if (deleted > 0) {
+                Toast.makeText(context, "Fichier supprimé avec succès", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Échec de la suppression", Toast.LENGTH_SHORT).show()
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+// Dialogue de confirmation de suppression
+@Composable
+fun DeleteConfirmationDialog(
+    audio: Audio,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val isAndroid10Plus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.Delete,
+                contentDescription = null,
+                tint = Color(0xFFFF5252)
+            )
+        },
+        title = {
+            Text(
+                text = "Supprimer le fichier ?",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Voulez-vous vraiment supprimer \"${audio.title}\" ?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (isAndroid10Plus) {
+                    Text(
+                        text = "ℹ️ Android vous demandera une confirmation système pour des raisons de sécurité.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                } else {
+                    Text(
+                        text = "⚠️ Cette action est irréversible.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFFF5252)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFFFF5252)
+                )
+            ) {
+                Text("Supprimer")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler")
+            }
+        },
+        containerColor = Color(0xFF1E1E1E),
+        textContentColor = Color.White
+    )
+}
+
+// Dialogue d'informations sur l'audio
+@Composable
+fun AudioInfoDialog(
+    audio: Audio,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.Info,
+                contentDescription = null,
+                tint = SpotifyColors.Green
+            )
+        },
+        title = {
+            Text(
+                text = "Informations",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoRow("Titre", audio.title)
+                InfoRow("Artiste", audio.artist)
+                InfoRow("Album", audio.album)
+                InfoRow("Durée", formatDuration(audio.duration))
+                InfoRow("Taille", formatFileSize(audio.size))
+                InfoRow("Chemin", audio.path)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Fermer")
+            }
+        },
+        containerColor = Color(0xFF1E1E1E),
+        textContentColor = Color.White
+    )
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White
         )
     }
 }

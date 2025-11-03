@@ -172,7 +172,7 @@ fun AudioPlayerScreen(
             
             // Image principale
             Image(
-                painter = painterResource(id = R.drawable.me),
+                painter = painterResource(id = R.drawable.music),
                 contentDescription = "Pochette",
                 modifier = Modifier
                     .size(300.dp)

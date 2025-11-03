@@ -25,4 +25,14 @@ sealed class Screen(
             }
         )
     }
+    
+    object PlaylistDetail : Screen("playlist_detail/{playlistId}", R.string.playlists) {
+        fun createRoute(playlistId: Long) = "playlist_detail/$playlistId"
+        
+        val arguments = listOf(
+            navArgument("playlistId") {
+                type = NavType.LongType
+            }
+        )
+    }
 } 

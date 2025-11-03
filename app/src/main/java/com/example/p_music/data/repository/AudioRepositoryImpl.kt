@@ -7,6 +7,7 @@ import android.provider.MediaStore
 import android.util.Log
 import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
+import com.example.p_music.domain.repository.FavoriteAudioRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +18,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AudioRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val favoriteAudioRepository: FavoriteAudioRepository
 ) : AudioRepository {
 
     override fun getAudios(): Flow<List<Audio>> = flow {
@@ -84,7 +86,8 @@ class AudioRepositoryImpl @Inject constructor(
                         path = data,
                         coverUri = getAlbumArtUri(id.toLong()),
                         size = size,
-                        dateAdded = dateModified
+                        dateAdded = dateModified,
+                        isFavorite = false // Sera mis à jour après le chargement
                     )
                     audioList.add(audio)
                 }
@@ -92,11 +95,20 @@ class AudioRepositoryImpl @Inject constructor(
             } ?: run {
                 Log.e("AudioRepository", "Query returned null cursor")
             }
+        } catch (e: SecurityException) {
+            Log.e("AudioRepository", "Permission denied to access audio files", e)
         } catch (e: Exception) {
             Log.e("AudioRepository", "Error querying audio files", e)
         }
         
-        emit(audioList)
+        Log.d("AudioRepository", "Emitting ${audioList.size} audio files")
+        
+        // Mettre à jour l'état des favoris
+        val updatedList = audioList.map { audio ->
+            audio.copy(isFavorite = favoriteAudioRepository.isFavorite(audio.id))
+        }
+        
+        emit(updatedList)
     }.flowOn(Dispatchers.IO)
 
     override suspend fun getAudioById(audioId: String): Audio? {

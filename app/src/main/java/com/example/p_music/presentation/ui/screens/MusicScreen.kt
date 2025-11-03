@@ -43,6 +43,9 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.p_music.R
 import com.example.p_music.domain.model.Audio
+import com.example.p_music.domain.repository.PlaylistRepository
+import com.example.p_music.presentation.ui.components.AddToPlaylistDialog
+import com.example.p_music.presentation.ui.components.CreatePlaylistDialog
 import com.example.p_music.presentation.ui.components.MiniPlayer
 import com.example.p_music.presentation.ui.components.SpotifyCard
 import com.example.p_music.presentation.ui.components.SpotifySearchBar
@@ -54,15 +57,25 @@ import java.io.File
 @Composable
 fun MusicScreen(
     onAudioClick: (Audio) -> Unit,
-    viewModel: MusicViewModel = hiltViewModel()
+    viewModel: MusicViewModel = hiltViewModel(),
+    playlistViewModel: com.example.p_music.presentation.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val playlists by playlistViewModel.playlists.collectAsState()
+    
+    // Charger les audios au démarrage
+    LaunchedEffect(Unit) {
+        viewModel.loadAudios()
+    }
     
     // États pour les dialogues
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var audioToDelete by remember { mutableStateOf<Audio?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var audioToAddToPlaylist by remember { mutableStateOf<Audio?>(null) }
     
     // Launcher pour la permission de suppression (Android 10+)
     val deletePermissionLauncher = rememberLauncherForActivityResult(
@@ -262,6 +275,13 @@ fun MusicScreen(
                                     onShowInfo = { audio ->
                                         audioToDelete = audio
                                         showInfoDialog = true
+                                    },
+                                    onToggleFavorite = { audio ->
+                                        viewModel.toggleFavorite(audio)
+                                    },
+                                    onAddToPlaylist = { audio ->
+                                        audioToAddToPlaylist = audio
+                                        showAddToPlaylistDialog = true
                                     }
                                 )
                             }
@@ -323,6 +343,43 @@ fun MusicScreen(
             }
         )
     }
+    
+    // Dialogue ajouter à une playlist
+    if (showAddToPlaylistDialog && audioToAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                audioToAddToPlaylist = null
+            },
+            onPlaylistSelected = { playlist ->
+                playlistViewModel.addAudioToPlaylist(playlist.id, audioToAddToPlaylist!!)
+                Toast.makeText(context, "Ajouté à ${playlist.name}", Toast.LENGTH_SHORT).show()
+                showAddToPlaylistDialog = false
+                audioToAddToPlaylist = null
+            },
+            onCreateNewPlaylist = {
+                showAddToPlaylistDialog = false
+                showCreatePlaylistDialog = true
+            }
+        )
+    }
+    
+    // Dialogue créer une playlist
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(
+            onDismiss = {
+                showCreatePlaylistDialog = false
+                audioToAddToPlaylist = null
+            },
+            onConfirm = { name, description ->
+                playlistViewModel.createPlaylist(name, description)
+                Toast.makeText(context, "Playlist \"$name\" créée", Toast.LENGTH_SHORT).show()
+                showCreatePlaylistDialog = false
+                audioToAddToPlaylist = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -336,7 +393,9 @@ fun SpotifyCardEnhanced(
     audio: Audio,
     onDelete: (Audio) -> Unit,
     onShare: (Audio) -> Unit,
-    onShowInfo: (Audio) -> Unit
+    onShowInfo: (Audio) -> Unit,
+    onToggleFavorite: (Audio) -> Unit,
+    onAddToPlaylist: (Audio) -> Unit
 ) {
     val primaryColor = SpotifyColors.Green
     val textColor = Color.White
@@ -417,6 +476,17 @@ fun SpotifyCardEnhanced(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                 }
+                
+                // Icône favori
+                if (audio.isFavorite) {
+                    Icon(
+                        imageVector = Icons.Rounded.Favorite,
+                        contentDescription = "Favori",
+                        tint = Color(0xFFFF5252),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
 
                 IconButton(
                     onClick = { showBottomSheet = true },
@@ -450,9 +520,9 @@ fun SpotifyCardEnhanced(
             onPlayNow = onClick,
             onAddToQueue = { /* TODO: Implémenter */ },
             onSetAsRingtone = { /* TODO: Implémenter */ },
-            onAddToPlaylist = { /* TODO: Implémenter */ },
+            onAddToPlaylist = { onAddToPlaylist(audio) },
             onRename = { /* TODO: Implémenter */ },
-            onToggleFavorite = { /* TODO: Implémenter */ },
+            onToggleFavorite = { onToggleFavorite(audio) },
             onDelete = { onDelete(audio) },
             onShare = { onShare(audio) },
             onShowInfo = { onShowInfo(audio) }

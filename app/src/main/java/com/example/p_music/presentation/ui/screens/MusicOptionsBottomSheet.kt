@@ -256,8 +256,8 @@ fun MusicOptionsBottomSheet(
                             ),
                             OptionItem(
                                 id = "favorite",
-                                icon = Icons.Rounded.Favorite,
-                                title = "Favoris",
+                                icon = if (audio.isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                title = if (audio.isFavorite) "Retirer des favoris" else "Ajouter aux favoris",
                                 onClick = onToggleFavorite
                             ),
                             OptionItem(

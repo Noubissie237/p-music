@@ -91,7 +91,24 @@ fun MainScreen() {
                     FavoritesScreen()
                 }
                 composable(Screen.Playlists.route) {
-                    PlaylistsScreen()
+                    PlaylistsScreen(
+                        onPlaylistClick = { playlistId ->
+                            navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
+                        }
+                    )
+                }
+                composable(
+                    route = Screen.PlaylistDetail.route,
+                    arguments = Screen.PlaylistDetail.arguments
+                ) { backStackEntry ->
+                    val playlistId = backStackEntry.arguments?.getLong("playlistId") ?: return@composable
+                    PlaylistDetailScreen(
+                        playlistId = playlistId,
+                        onBack = { navController.popBackStack() },
+                        onPlayAudio = { audio ->
+                            navController.navigate("player/${audio.id}")
+                        }
+                    )
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen()

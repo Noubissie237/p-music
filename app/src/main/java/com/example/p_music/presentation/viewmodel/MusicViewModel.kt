@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.p_music.domain.model.Audio
 import com.example.p_music.domain.repository.AudioRepository
+import com.example.p_music.domain.repository.FavoriteAudioRepository
 import com.example.p_music.domain.service.AudioPlayerService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -25,6 +26,7 @@ data class MusicUiState(
 @HiltViewModel
 class MusicViewModel @Inject constructor(
     private val audioRepository: AudioRepository,
+    private val favoriteAudioRepository: FavoriteAudioRepository,
     private val audioPlayerService: AudioPlayerService
 ) : ViewModel() {
 
@@ -32,7 +34,7 @@ class MusicViewModel @Inject constructor(
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
     init {
-        loadAudios()
+        // Ne pas charger automatiquement - attendre que les permissions soient accordées
         observePlayerState()
     }
 
@@ -71,9 +73,12 @@ class MusicViewModel @Inject constructor(
                         )
                     }
                     // Mettre à jour la playlist du service sans lancer la lecture
-                    audioPlayerService.setPlaylist(audios, false)
+                    if (audios.isNotEmpty()) {
+                        audioPlayerService.setPlaylist(audios, false)
+                    }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("MusicViewModel", "Error loading audios", e)
                 _uiState.update { 
                     it.copy(
                         isLoading = false,
@@ -142,6 +147,14 @@ class MusicViewModel @Inject constructor(
 
     fun seekTo(position: Float) {
         audioPlayerService.seekTo(position)
+    }
+    
+    fun toggleFavorite(audio: Audio) {
+        viewModelScope.launch {
+            favoriteAudioRepository.toggleFavorite(audio)
+            // Recharger la liste pour mettre à jour l'état des favoris
+            loadAudios()
+        }
     }
 
     override fun onCleared() {

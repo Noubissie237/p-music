@@ -60,6 +60,12 @@ class AudioPlaybackService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // IMPORTANT : Démarrer la notification foreground immédiatement
+        // pour éviter le crash Android (obligation dans les 5 secondes)
+        if (intent?.action != ACTION_STOP) {
+            startForeground(NOTIFICATION_ID, createEmptyNotification())
+        }
+        
         when (intent?.action) {
             ACTION_PLAY_PAUSE -> audioPlayerService.togglePlayPause()
             ACTION_NEXT -> audioPlayerService.playNext()

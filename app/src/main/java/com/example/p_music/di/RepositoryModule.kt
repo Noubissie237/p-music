@@ -3,9 +3,11 @@ package com.example.p_music.di
 import android.content.Context
 import com.example.p_music.data.repository.AudioRepositoryImpl
 import com.example.p_music.data.repository.FavoriteAudioRepositoryImpl
+import com.example.p_music.data.repository.PlaylistRepositoryImpl
 import com.example.p_music.data.repository.VideoRepositoryImpl
 import com.example.p_music.domain.repository.AudioRepository
 import com.example.p_music.domain.repository.FavoriteAudioRepository
+import com.example.p_music.domain.repository.PlaylistRepository
 import com.example.p_music.domain.repository.VideoRepository
 import dagger.Binds
 import dagger.Module
@@ -37,13 +39,20 @@ abstract class RepositoryModule {
         videoRepositoryImpl: VideoRepositoryImpl
     ): VideoRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindPlaylistRepository(
+        playlistRepositoryImpl: PlaylistRepositoryImpl
+    ): PlaylistRepository
+
     companion object {
         @Provides
         @Singleton
         fun provideAudioRepositoryImpl(
-            @ApplicationContext context: Context
+            @ApplicationContext context: Context,
+            favoriteAudioRepository: FavoriteAudioRepository
         ): AudioRepositoryImpl {
-            return AudioRepositoryImpl(context)
+            return AudioRepositoryImpl(context, favoriteAudioRepository)
         }
 
         @Provides

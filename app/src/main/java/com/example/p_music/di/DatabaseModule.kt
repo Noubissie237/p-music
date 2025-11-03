@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.p_music.data.local.AppDatabase
 import com.example.p_music.data.local.dao.FavoriteAudioDao
 import com.example.p_music.data.local.dao.FavoriteVideoDao
+import com.example.p_music.data.local.dao.PlaylistDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +26,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "p_music_database"
-        ).build()
+        )
+        .fallbackToDestructiveMigration() // Permet de recréer la DB si la version change
+        .build()
     }
 
     @Provides
@@ -38,5 +41,11 @@ object DatabaseModule {
     @Singleton
     fun provideFavoriteVideoDao(database: AppDatabase): FavoriteVideoDao {
         return database.favoriteVideoDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePlaylistDao(database: AppDatabase): PlaylistDao {
+        return database.playlistDao()
     }
 } 
